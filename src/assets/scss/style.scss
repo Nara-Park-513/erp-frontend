@@ -1,0 +1,46 @@
+@use "./reset";
+@use"./bg" as bg;
+@use "./margin" as mg;
+@use "./btn";
+@use "./admin";
+@use "./font";
+@use "./table";
+
+html, html * {
+    font-family: 'Pretendard';
+}
+
+html{
+    body{
+        .o-hidden{overflow: hidden !important;}
+        .d-none{display:none;}
+        .text-gray-900{color:#3a3b45 !important;}
+        form.user{
+                
+                .form-control-user{
+                font-size:.8rem !important;
+                border-radius: 10rem !important ;
+                padding:.75rem 1rem !important;
+                }
+
+              
+            }
+        }
+    }
+
+    .form-group{margin-bottom:1rem !important;}
+    .br50{border-radius: 50px !important; 
+        overflow: hidden !important; 
+        border:1px solid #ccc !important;
+        border-collapse:collapse !important;
+    }
+
+
+.sidebar{
+position:absolute;
+bottom:0; right:0;
+width:4%;
+height:100%;
+background-color: hotpink;
+z-index:999999999 !important;
+}

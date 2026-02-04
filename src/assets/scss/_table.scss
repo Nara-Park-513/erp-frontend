@@ -1,0 +1,49 @@
+table.draft{
+    border:2px solid #ccc !important;
+    thead{       
+        tr{
+            th{
+        background-color: #f3f3f3 !important; 
+        font-size:14px !important;
+        font-weight: 500 !important;  
+        width:128px !important;
+        max-width:100% !important;      
+            }
+        }
+    }
+    tbody{
+        tr{
+            td{
+            color:#999 !important;
+        font-size:13px !important;
+        font-weight: 400 !important;  
+                width:128px !important;
+        max-width:100% !important;    
+            }
+        }
+    }
+}
+
+table.order{
+    thead{
+        tr{
+            th{
+                background-color:#f7f8f9;
+                color:#26a026;
+                font-size:14px;
+                font-weight:500;
+            }
+        }
+    }
+    tbody{
+        tr{
+            border:none !important;
+            td{
+            border:none !important;
+            font-size:13px;
+            font-weight:400;
+            color:#666;
+            }
+        }
+    }
+}
