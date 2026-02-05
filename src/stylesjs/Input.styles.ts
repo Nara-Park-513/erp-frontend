@@ -4,7 +4,7 @@ export const InputGroup = styled.div`
 max-width:80%;
 display:flex;
 align-items:center;
-justify-content:flex-start;
+justify-content:space-between;
 `;
 
 export const InsertTitle = styled.input`
@@ -63,9 +63,72 @@ margin:5px 0px 10px;
   }
 `;
 
-export const Radio = styled.input`
 
+
+export const Radio = styled.input.attrs({ type: "radio" })`
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+
+  border: 2px solid #cbd5e1; /* 기본 테두리 */
+  background: #fff;
+  display: inline-grid;
+  place-content: center;
+
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  /* 안쪽 동그라미 */
+  &::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    transform: scale(0);
+    transition: transform 0.12s ease;
+    background: #2563eb; /* 체크 색(파란색) */
+  }
+
+  &:checked {
+    border-color: #2563eb;
+  }
+
+  &:checked::before {
+    transform: scale(1);
+  }
+
+  &:hover {
+    border-color: #94a3b8;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 `;
+
+export const RadioLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  &:has(input:disabled) {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
 export const Label = styled.label`
 font-size:12px !important; color:#333 !important;
 width:70px;
@@ -82,4 +145,3 @@ display:inline-flex;
 align-items:center;
 `;
 export const Check = styled.input``;
-
