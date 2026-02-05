@@ -4,7 +4,7 @@ export const InputGroup = styled.div`
 max-width:80%;
 display:flex;
 align-items:center;
-justify-content:space-between;
+justify-content:flex-start;
 `;
 
 export const InsertTitle = styled.input`
