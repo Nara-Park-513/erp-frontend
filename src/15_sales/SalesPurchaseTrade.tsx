@@ -14,7 +14,7 @@ import {
   SearchWide,
 } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
-import { Search, Radio, Label } from "../stylesjs/Input.styles";
+import { Search, Radio } from "../stylesjs/Input.styles";
 import { WhiteBtn, MainSubmitBtn, BtnRight } from "../stylesjs/Button.styles";
 import Lnb from "../include/Lnb";
 
@@ -23,7 +23,6 @@ import TradeModal, {
   Trade,
   TradeType,
   VatType,
-  JournalStatus,
   JournalLine,
 } from "../component/trade/TradeModal";
 
@@ -32,7 +31,47 @@ const ACC_VAT_OUTPUT = "2100";
 const ACC_VAT_INPUT = "1350";
 const ACC_FEE = "5120";
 
-const API_BASE = "http://localhost:8888/api/acc/trades";
+/**
+ * ✅ axios 인스턴스 (JWT Bearer 인증용)
+ * - 서버가 JWT라면 Authorization: Bearer {token} 이 필수
+ * - token 저장 키는 프로젝트에 맞춰 "token" 또는 "accessToken" 등으로 맞추면 됨
+ */
+const api = axios.create({
+  baseURL: "http://localhost:8888",
+  timeout: 10000,
+  // ✅ JWT면 보통 필요 없음 (세션/쿠키 인증일 때만 true)
+  // withCredentials: true,
+});
+
+// ✅ 요청 전에 토큰 자동 첨부
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("jwt");
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // 디버그(필요하면 켜기)
+  // console.log("REQ", config.method, config.url, "AUTH?", !!token);
+
+  return config;
+});
+
+// ✅ 에러 응답 디버그
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    console.log("❌ API ERROR", err?.response?.status, err?.response?.data);
+    return Promise.reject(err);
+  }
+);
+
+// ✅ API 경로는 baseURL 기준 상대경로로
+const API_BASE = "/api/acc/trades";
 
 type ColumnDef = { key: string; label: string };
 
@@ -155,7 +194,6 @@ function buildLines(t: Trade): JournalLine[] {
 
 export default function SalesPurchaseTrade() {
   const [customerList, setCustomerList] = useState<Customer[]>([]);
-
   const [show, setShow] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -181,8 +219,8 @@ export default function SalesPurchaseTrade() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await axios.get("http://localhost:8888/api/acc/customers");
-        const rows = Array.isArray(res.data) ? res.data : (res.data?.content ?? []);
+        const res = await api.get("/api/acc/customers");
+        const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
         setCustomerList(rows);
       } catch (e) {
         console.error("Failed to fetch customer list", e);
@@ -194,7 +232,7 @@ export default function SalesPurchaseTrade() {
   // ✅ 목록조회
   const fetchList = async () => {
     try {
-      const res = await axios.get(API_BASE, {
+      const res = await api.get(API_BASE, {
         params: {
           page: 0,
           size: 20,
@@ -229,7 +267,7 @@ export default function SalesPurchaseTrade() {
 
   const openDetail = async (id: number) => {
     try {
-      const res = await axios.get(`${API_BASE}/${id}`);
+      const res = await api.get(`${API_BASE}/${id}`);
       const data: Trade = res.data;
 
       const lines = data.lines && data.lines.length > 0 ? data.lines : buildLines(data);
@@ -248,7 +286,6 @@ export default function SalesPurchaseTrade() {
       const next = { ...prev, ...patch };
       const supply = Number(next.supplyAmount) || 0;
 
-      // vatType / supplyAmount 바뀌면 VAT 자동계산
       if (patch.vatType !== undefined || patch.supplyAmount !== undefined) {
         next.vatAmount = calcVat(next.vatType, supply);
       }
@@ -276,6 +313,18 @@ export default function SalesPurchaseTrade() {
         return alert("매입/비용계정을 입력하세요.");
       }
 
+      // ✅ customerId 보정 (서버 500 방지용)
+      const matchedCustomer: any =
+        (customerList as any[]).find((c) => c.name === trade.customerName) ??
+        (customerList as any[]).find((c) => c.customerName === trade.customerName);
+
+      const customerId = matchedCustomer?.id ?? matchedCustomer?.customerId ?? null;
+
+      if (!customerId) {
+        alert("거래처를 목록에서 선택해주세요. (customerId 필요)");
+        return;
+      }
+
       // 차대합 체크
       const debitTotal = (trade.lines || [])
         .filter((l) => l.dcType === "DEBIT")
@@ -288,10 +337,15 @@ export default function SalesPurchaseTrade() {
         return alert(`차변합(${debitTotal})과 대변합(${creditTotal})이 일치해야 저장됩니다.`);
       }
 
-      const payload = { ...trade };
+      const payload: any = {
+        ...trade,
+        customerId,
+        // tradeNo 빈문자면 서버에서 생성하도록 payload에서 제거(있으면 유지)
+        tradeNo: trade.tradeNo?.trim() ? trade.tradeNo : undefined,
+      };
 
-      if (selectedId) await axios.put(`${API_BASE}/${selectedId}`, payload);
-      else await axios.post(API_BASE, payload);
+      if (selectedId) await api.put(`${API_BASE}/${selectedId}`, payload);
+      else await api.post(API_BASE, payload);
 
       await fetchList();
       handleClose();
@@ -306,7 +360,7 @@ export default function SalesPurchaseTrade() {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
     try {
-      await axios.delete(`${API_BASE}/${selectedId}`);
+      await api.delete(`${API_BASE}/${selectedId}`);
       await fetchList();
       handleClose();
     } catch (e) {
@@ -335,11 +389,9 @@ export default function SalesPurchaseTrade() {
 
               <Right>
                 <TopWrap />
-                 <TableTitle>{typeFilter === "SALES" ? "매출전표" : "매입전표"}</TableTitle>
-                <JustifyContent>
-                 
+                <TableTitle>{typeFilter === "SALES" ? "매출전표" : "매입전표"}</TableTitle>
 
-                  {/* 상단 툴바 */}
+                <JustifyContent>
                   <Toolbar>
                     <ToolbarLeft>
                       <ToggleGroup>
@@ -393,11 +445,7 @@ export default function SalesPurchaseTrade() {
                     )}
 
                     {list.map((r, idx) => (
-                      <tr
-                        key={r.id ?? idx}
-                        onClick={() => r.id && openDetail(r.id)}
-                        style={{ cursor: "pointer" }}
-                      >
+                      <tr key={r.id ?? idx} onClick={() => r.id && openDetail(r.id)} style={{ cursor: "pointer" }}>
                         {columns.map((col) => (
                           <td key={col.key}>
                             {col.key === "tradeType"
@@ -421,7 +469,6 @@ export default function SalesPurchaseTrade() {
         </Row>
       </Container>
 
-      {/* ✅ 모달 분리 */}
       <TradeModal
         show={show}
         selectedId={selectedId}

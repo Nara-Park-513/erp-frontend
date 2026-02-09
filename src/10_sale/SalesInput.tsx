@@ -1,87 +1,93 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Table,
-  Button,
-  Modal,
-  Form,
-} from "react-bootstrap";
+import { Container, Row, Col, Table } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 import SideBar from "../include/SideBar";
-import {
-  Left,
-  Right,
-  Flex,
-  TopWrap,
-  RoundRect,
-} from "../stylesjs/Content.styles";
-import { JustifyContent, W30, W70 } from "../stylesjs/Util.styles";
+import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
+import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
-import { InputGroup, MidLabel } from "../stylesjs/Input.styles";
 import { MainSubmitBtn, BtnRight } from "../stylesjs/Button.styles";
 import Lnb from "../include/Lnb";
 
-/* =========================
-   타입
-========================= */
+import SalesModal, { Sales, SalesLine, Customer } from "../component/sales/SalesModal";
 
-type SalesLine = {
-  itemName: string;
-  qty: number;
-  price: number;
-  amount: number;
-  remark?: string;
-};
+const api = axios.create({
+  baseURL: "http://localhost:8888",
+  timeout: 10000,
+});
 
-type Sales = {
-  id?: number;
-  salesNo: string;
-  salesDate: string;
-  customerName: string;
-  remark?: string;
-  lines: SalesLine[];
-};
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("jwt");
 
-/* =========================
-   설정
-========================= */
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-const API_BASE = "http://localhost:8888/api/sales/sales";
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    console.log("❌ API ERROR", err?.response?.status, err?.response?.data);
+    return Promise.reject(err);
+  }
+);
 
-/* 빈 데이터 */
+const API_BASE = "/api/sales/sales";
+
 const emptySales = (): Sales => ({
   salesNo: "",
   salesDate: new Date().toISOString().slice(0, 10),
+  customerId: null,
   customerName: "",
   remark: "",
   lines: [{ itemName: "", qty: 1, price: 0, amount: 0 }],
 });
 
-/* =========================
-   컴포넌트
-========================= */
-
-const SalesInput = () => {
+export default function SalesInput() {
+  const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [show, setShow] = useState(false);
-  const [salesList, setSalesList] = useState<Sales[]>([]);
-  const [sales, setSales] = useState<Sales>(emptySales());
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  /* ===== 합계 ===== */
+  const [salesList, setSalesList] = useState<Sales[]>([]);
+  const [sales, setSales] = useState<Sales>(emptySales());
+
+  // 합계
   const totalAmount = useMemo(
-    () => sales.lines.reduce((s, l) => s + l.amount, 0),
+    () => (sales.lines || []).reduce((s, l) => s + (Number(l.amount) || 0), 0),
     [sales.lines]
   );
 
-  /* ===== 목록 조회 ===== */
+  // 거래처 목록 (GeneralJournal 방식 그대로)
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const res = await api.get("/api/acc/customers");
+        const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
+        // Customer 타입에 맞게 최소 정규화
+        const normalized: Customer[] = rows.map((c: any) => ({
+          id: c.id ?? c.customerId,
+          customerName: c.customerName ?? c.name ?? "",
+        }));
+        setCustomerList(normalized.filter((c) => c.id && c.customerName));
+      } catch (e) {
+        console.error("거래처 목록 조회 실패", e);
+      }
+    };
+    fetchCustomers();
+  }, []);
+
+  // 목록 조회
   const fetchSales = async () => {
     try {
-      const res = await axios.get(API_BASE);
-      setSalesList(res.data ?? []);
+      const res = await api.get(API_BASE);
+      const list = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
+      setSalesList(list);
     } catch (e) {
       console.error("판매 조회 실패", e);
     }
@@ -91,13 +97,13 @@ const SalesInput = () => {
     fetchSales();
   }, []);
 
-  /* ===== 라인 수정 ===== */
+  // 라인 수정
   const updateLine = (idx: number, patch: Partial<SalesLine>) => {
     setSales((prev) => {
-      const lines = prev.lines.map((l, i) => {
+      const lines = (prev.lines || []).map((l, i) => {
         if (i !== idx) return l;
         const updated = { ...l, ...patch };
-        updated.amount = updated.qty * updated.price;
+        updated.amount = (Number(updated.qty) || 0) * (Number(updated.price) || 0);
         return updated;
       });
       return { ...prev, lines };
@@ -107,71 +113,90 @@ const SalesInput = () => {
   const addLine = () => {
     setSales((p) => ({
       ...p,
-      lines: [...p.lines, { itemName: "", qty: 1, price: 0, amount: 0 }],
+      lines: [...(p.lines || []), { itemName: "", qty: 1, price: 0, amount: 0 }],
     }));
   };
 
   const removeLine = (idx: number) => {
     setSales((p) => ({
       ...p,
-      lines: p.lines.filter((_, i) => i !== idx),
+      lines: (p.lines || []).filter((_, i) => i !== idx),
     }));
   };
 
-  /* ===== 신규 ===== */
+  // 신규
   const openNew = () => {
     setSelectedId(null);
     setSales(emptySales());
     setShow(true);
   };
 
-  /* ===== 상세 ===== */
+  // 상세
   const openDetail = async (id: number) => {
-    const res = await axios.get(`${API_BASE}/${id}`);
-    setSelectedId(id);
-    setSales(res.data);
-    setShow(true);
+    try {
+      const res = await api.get(`${API_BASE}/${id}`);
+      setSelectedId(id);
+      setSales(res.data);
+      setShow(true);
+    } catch (e) {
+      console.error("판매 상세 조회 실패", e);
+    }
   };
 
-  /* ===== 저장 ===== */
-  const saveSales = async () => {
-    if (!sales.customerName) {
-      alert("거래처를 입력하세요");
-      return;
-    }
-    if (sales.lines.length === 0) {
-      alert("라인을 입력하세요");
-      return;
-    }
+  const handleClose = () => {
+    setShow(false);
+    setSelectedId(null);
+    setSales(emptySales());
+  };
 
+  // 저장
+  const saveSales = async () => {
     try {
-      if (selectedId) {
-        await axios.put(`${API_BASE}/${selectedId}`, sales);
-      } else {
-        await axios.post(API_BASE, sales);
+      if (!sales.salesDate) return alert("판매일자를 입력하세요");
+      if (!sales.lines || sales.lines.length === 0) return alert("판매 라인을 1개 이상 입력하세요");
+
+      // ✅ 거래처는 리스트에서 선택 → customerId 필수
+      const customerId = sales.customerId;
+      if (!customerId) return alert("거래처를 목록에서 선택해 주세요(customerId 필요)");
+
+      for (const [i, l] of sales.lines.entries()) {
+        if (!l.itemName?.trim()) return alert(`라인 ${i + 1}: 품목명을 입력하세요`);
+        if (!(Number(l.qty) > 0)) return alert(`라인 ${i + 1}: 수량은 0보다 커야 합니다.`);
+        if (!(Number(l.price) >= 0)) return alert(`라인 ${i + 1}: 단가는 0 이상이어야 합니다.`);
       }
+
+      const payload: any = {
+        ...sales,
+        salesNo: sales.salesNo?.trim() ? sales.salesNo.trim() : undefined,
+      };
+
+      if (selectedId) await api.put(`${API_BASE}/${selectedId}`, payload);
+      else await api.post(API_BASE, payload);
+
       await fetchSales();
-      setShow(false);
+      handleClose();
     } catch (e) {
       console.error("저장 실패", e);
+      alert("저장 실패 (콘솔 확인)");
     }
   };
 
-  /* ===== 삭제 ===== */
+  // 삭제
   const deleteSales = async () => {
     if (!selectedId) return;
     if (!window.confirm("삭제하시겠습니까?")) return;
 
-    await axios.delete(`${API_BASE}/${selectedId}`);
-    await fetchSales();
-    setShow(false);
+    try {
+      await api.delete(`${API_BASE}/${selectedId}`);
+      await fetchSales();
+      handleClose();
+    } catch (e) {
+      console.error("판매 삭제 실패", e);
+      alert("삭제 실패 (콘솔 확인)");
+    }
   };
 
-
-
-const stockMenu = [
-  { key: "status", label: "판매입력", path: "/sale" },
-];
+  const stockMenu = [{ key: "status", label: "판매입력", path: "/sale" }];
 
   return (
     <>
@@ -186,11 +211,11 @@ const stockMenu = [
           <Col>
             <Flex>
               <Left>
-<Lnb menuList={stockMenu} title="판매입력"/>
+                <Lnb menuList={stockMenu} title="판매입력" />
               </Left>
+
               <Right>
                 <TopWrap />
-
                 <JustifyContent>
                   <TableTitle>판매입력</TableTitle>
                 </JustifyContent>
@@ -215,8 +240,8 @@ const stockMenu = [
                         <td>{s.salesDate}</td>
                         <td>{s.customerName}</td>
                         <td className="text-end">
-                          {s.lines
-                            .reduce((sum, l) => sum + l.amount, 0)
+                          {(s.lines || [])
+                            .reduce((sum, l) => sum + (Number(l.amount) || 0), 0)
                             .toLocaleString()}
                         </td>
                       </tr>
@@ -233,132 +258,20 @@ const stockMenu = [
         </Row>
       </Container>
 
-      {/* ===== 모달 ===== */}
-      <Modal show={show} onHide={() => setShow(false)} size="xl" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>판매 {selectedId ? "수정" : "등록"}</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          <RoundRect>
-            <InputGroup>
-              <W30><MidLabel>판매번호</MidLabel></W30>
-              <W70>
-                <Form.Control
-                  value={sales.salesNo}
-                  onChange={(e) =>
-                    setSales((p) => ({ ...p, salesNo: e.target.value }))
-                  }
-                />
-              </W70>
-            </InputGroup>
-
-            <InputGroup className="my-3">
-              <W30><MidLabel>판매일자</MidLabel></W30>
-              <W70>
-                <Form.Control
-                  type="date"
-                  value={sales.salesDate}
-                  onChange={(e) =>
-                    setSales((p) => ({ ...p, salesDate: e.target.value }))
-                  }
-                />
-              </W70>
-            </InputGroup>
-
-            <InputGroup className="my-3">
-              <W30><MidLabel>거래처</MidLabel></W30>
-              <W70>
-                <Form.Control
-                  value={sales.customerName}
-                  onChange={(e) =>
-                    setSales((p) => ({ ...p, customerName: e.target.value }))
-                  }
-                />
-              </W70>
-            </InputGroup>
-
-            <hr />
-
-            <Table bordered>
-              <thead>
-                <tr>
-                  <th>품목</th>
-                  <th style={{ width: 120 }}>수량</th>
-                  <th style={{ width: 150 }}>단가</th>
-                  <th style={{ width: 150 }}>금액</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sales.lines.map((l, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <Form.Control
-                        value={l.itemName}
-                        onChange={(e) =>
-                          updateLine(idx, { itemName: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <Form.Control
-                        type="number"
-                        value={l.qty}
-                        onChange={(e) =>
-                          updateLine(idx, { qty: Number(e.target.value) })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <Form.Control
-                        type="number"
-                        value={l.price}
-                        onChange={(e) =>
-                          updateLine(idx, { price: Number(e.target.value) })
-                        }
-                      />
-                    </td>
-                    <td className="text-end">
-                      {l.amount.toLocaleString()}
-                    </td>
-                    <td className="text-end">
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => removeLine(idx)}
-                      >
-                        삭제
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-
-            <Button size="sm" onClick={addLine}>
-              라인 추가
-            </Button>
-
-            <div style={{ textAlign: "right", fontWeight: 700 }}>
-              합계금액 : {totalAmount.toLocaleString()}
-            </div>
-          </RoundRect>
-        </Modal.Body>
-
-        <Modal.Footer>
-          {selectedId && (
-            <Button variant="danger" onClick={deleteSales}>
-              삭제
-            </Button>
-          )}
-          <Button onClick={saveSales}>
-            {selectedId ? "수정" : "저장"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <SalesModal
+        show={show}
+        selectedId={selectedId}
+        sales={sales}
+        totalAmount={totalAmount}
+        onClose={handleClose}
+        onSetSales={setSales}
+        addLine={addLine}
+        removeLine={removeLine}
+        updateLine={updateLine}
+        onSave={saveSales}
+        onDelete={deleteSales}
+        customerList={customerList}
+      />
     </>
   );
-};
-
-export default SalesInput;
+}
