@@ -57,17 +57,60 @@ const ProfitLoss = () => {
   const [journalList, setJournalList] = useState<Journal[]>([]);
 
   /* ===== 전표 조회 ===== */
-  const fetchJournals = async () => {
-    try {
-      const res = await axios.get(API_BASE, {
-        params: { page: 0, size: 2000 },
-      });
-      const list = res.data?.content ?? res.data ?? [];
-      setJournalList(list);
-    } catch (e) {
-      console.error("전표 조회 실패", e);
+// ✅ axios 인스턴스 (GeneralJournal과 동일하게)
+const api = axios.create({
+  baseURL: "http://localhost:8888",
+  timeout: 10000,
+});
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("jwt");
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+const API_BASE = "/api/acc/journals";
+
+const fetchJournals = async () => {
+  try {
+    const res = await api.get<any>(API_BASE, { params: { page: 0, size: 2000 } });
+    const baseList = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
+
+    console.log("PL base sample:", baseList?.[0], "lines:", baseList?.[0]?.lines);
+
+    const ids: number[] = baseList
+      .map((j: any) => j?.id)
+      .filter((id: any) => typeof id === "number");
+
+    // id가 없으면 baseList로라도 세팅
+    if (ids.length === 0) {
+      setJournalList(baseList.map((j: any) => ({ ...j, lines: j.lines ?? [] })));
+      return;
     }
-  };
+
+    const detailList: Journal[] = await Promise.all(
+      ids.map(async (id) => {
+        const d = await api.get<Journal>(`${API_BASE}/${id}`);
+        return d.data;
+      })
+    );
+
+    console.log("PL detail sample lines:", detailList?.[0]?.lines);
+
+    setJournalList(detailList);
+  } catch (e) {
+    console.error("전표 조회 실패", e);
+  }
+};
+
+
 
   useEffect(() => {
     fetchJournals();

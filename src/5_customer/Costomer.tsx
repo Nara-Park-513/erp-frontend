@@ -88,7 +88,7 @@ const Customer = () => {
       );
       
       // 받아온 데이터를 customerList 상태에 설정
-      setCustomerList(res.data);
+      setCustomerList(res.data.content || []);
     } catch (e) {
       console.error("거래처 조회 실패", e);
     }
@@ -174,24 +174,8 @@ const Customer = () => {
     }).open();
   };
 
-const IndividualHoverStyle = () => (
-  <style>{`
-    /* 1. 테이블 전체 행에 마우스 커서는 손가락 모양으로 고정 */
-    .custom-hover-table tbody tr td {
-      cursor: pointer;
-    }
-
-    /* 2. 마우스를 올린 '그 칸(td)'에만 밑줄과 색상 변화 적용 */
-    .custom-hover-table tbody tr td:hover {
-      text-decoration: underline !important;
-      color: #007bff !important; /* 강조색 (원치 않으면 삭제 가능) */
-    }
-  `}</style>
-);
-
   return (
     <>
-    <IndividualHoverStyle />
       <div className="fixed-top">
         <Top />
         <Header />
@@ -221,7 +205,7 @@ const IndividualHoverStyle = () => (
                   </InputGroup>
                 </JustifyContent>
 
-                <Table responsive className="custom-hover-table">
+                <Table responsive>
                   <thead>
                     <tr>
                       {columns.map((c) => (

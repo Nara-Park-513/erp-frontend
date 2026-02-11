@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Table, Button } from "react-bootstrap";
+import { Container, Row, Col, Table } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 import SideBar from "../include/SideBar";
@@ -14,36 +14,37 @@ import Lnb from "../include/Lnb";
 import GeneralJournalModal, {
   Journal,
   JournalLine,
-} from "../component/journal/GeneralJournalModal"; // ✅ 경로 맞추기
+} from "../component/journal/GeneralJournalModal";
 
-//axios인스턴스
+// ✅ axios 인스턴스
 const api = axios.create({
-  baseURL:"http://localhost:8888",
-  timeout:10000, //안에 응답이 없으면 자동으로 실패 처리(타임아웃 에러).
-})
+  baseURL: "http://localhost:8888",
+  timeout: 10000,
+});
 
 api.interceptors.request.use((config) => {
-  //요청 보내기 직전에 가로채서(config를) 수정할 수 있는 “요청 인터셉터”.
-  //로컬스토리지에서 토큰을 찾는다.
   const token =
-  localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("jwt");
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("jwt");
 
-  if(token) {//토큰이 존재할 때만 헤더를 붙인다(로그인 안 한 상태면 안 붙임).
-    config.headers = config.headers ?? {}; //?? 는 “null 또는 undefined 일 때만” 오른쪽 값을 사용.
+  if (token) {
+    config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-})
+});
 
-api.interceptors.response.use(//이번엔 응답을 받은 직후를 가로채는 “응답 인터셉터”.
-  (res) => res, (err) => {
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
     console.log("❌ API ERROR", err?.response?.status, err?.response?.data);
-    //디버깅용 로그.
-    return Promise.reject(err);//에러를 다시 던져서(reject) 호출한 쪽에서 catch로 처리하게 만든다.
+    return Promise.reject(err);
   }
-)
+);
 
-const API_BASE = "/api/acc/Journals";
+// ✅ 대소문자 주의: journals 소문자
+const API_BASE = "/api/acc/journals";
 
 type ColumnDef = { key: string; label: string };
 
@@ -60,9 +61,7 @@ type Customer = {
   customerType?: string;
 };
 
-
-
-//👉 새 전표를 만들 때 사용할 “빈 전표 기본값 생성기”
+// ✅ 빈 전표
 const emptyJournal = (): Journal => ({
   journalNo: "",
   journalDate: new Date().toISOString().slice(0, 10),
@@ -76,11 +75,8 @@ const emptyJournal = (): Journal => ({
   ],
 });
 
-const GeneralJournal = () => {
-
-//거래처 때문에 추가 도리꺼임
-const [customerList, setCustomerList] = useState<Customer[]>([]);
-
+export default function GeneralJournal() {
+  const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [show, setShow] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -98,20 +94,23 @@ const [customerList, setCustomerList] = useState<Customer[]>([]);
     { key: "status", label: "상태" },
   ];
 
-  //거래처 목록 추가 
+  // ✅ 거래처 목록
   useEffect(() => {
     const fetchCustomers = async () => {
-      try{
+      try {
         const res = await api.get("/api/acc/customers");
-        const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
+        const rows = Array.isArray(res.data)
+          ? res.data
+          : res.data?.content ?? [];
         setCustomerList(rows);
       } catch (e) {
         console.error("거래처 목록 조회 실패", e);
       }
     };
     fetchCustomers();
-  },[]);
+  }, []);
 
+  // ✅ 차/대 합계
   const totals = useMemo(() => {
     const debitTotal = (journal.lines || [])
       .filter((l) => l.dcType === "DEBIT")
@@ -124,17 +123,20 @@ const [customerList, setCustomerList] = useState<Customer[]>([]);
     return { debitTotal, creditTotal };
   }, [journal.lines]);
 
+  // ✅ 전표 목록 조회 (Page든 List든 안전 처리)
   const fetchJournals = async () => {
     try {
-      const res = await axios.get(API_BASE, {
+      const res = await api.get(API_BASE, {
         params: {
           page: 0,
           size: 20,
-          q: keyword || undefined,
+          q: keyword?.trim() ? keyword.trim() : undefined,
         },
       });
 
-      const list = res.data?.content ?? res.data ?? [];
+      const list = Array.isArray(res.data)
+        ? res.data
+        : res.data?.content ?? [];
 
       const normalized = list.map((j: any) => {
         const lines: JournalLine[] = j.lines ?? [];
@@ -167,7 +169,7 @@ const [customerList, setCustomerList] = useState<Customer[]>([]);
 
   const openDetail = async (id: number) => {
     try {
-      const res = await axios.get(`${API_BASE}/${id}`);
+      const res = await api.get(`${API_BASE}/${id}`);
       setSelectedId(id);
       setJournal(res.data);
       setShow(true);
@@ -176,11 +178,14 @@ const [customerList, setCustomerList] = useState<Customer[]>([]);
     }
   };
 
-  //라인 추가/삭제/수정
+  // ✅ 라인 추가/삭제/수정
   const addLine = () => {
     setJournal((prev) => ({
       ...prev,
-      lines: [...(prev.lines || []), { accountCode: "", dcType: "DEBIT", amount: 0, lineRemark: "" }],
+      lines: [
+        ...(prev.lines || []),
+        { accountCode: "", dcType: "DEBIT", amount: 0, lineRemark: "" },
+      ],
     }));
   };
 
@@ -198,58 +203,86 @@ const [customerList, setCustomerList] = useState<Customer[]>([]);
     }));
   };
 
+  // ✅ 저장
   const saveJournal = async () => {
     try {
-if (!journal.journalDate) return alert("전표일자를 입력하세요");
-if (!journal.lines || journal.lines.length === 0)  return alert("전표 라인을 1개 이상 입력하세요");
-//거래처 선택
-if (!journal.customerName?.trim()) return alert("거래처 선택하세요");
-//거래처 리스트에서 커스터머id 보정
-const matched : any =
-(customerList as any[]).find((c) => c.customerName === journal.customerName) ??
-(customerList as any[]).find((c) => c.name === journal.customerName)
+      if (!journal.journalDate) return alert("전표일자를 입력하세요");
+      if (!journal.lines || journal.lines.length === 0)
+        return alert("전표 라인을 1개 이상 입력하세요");
 
-const customerId = matched?.id ?? matched?.customerId ?? null;
-if (!customerId) return alert("거래처를 목록에서 선택해 주세요(customerId 필요)");
+       // 👇 여기 넣는다
+    const codes = new Map<string, Set<string>>();
+    for (const l of journal.lines) {
+      const code = (l.accountCode ?? "").trim();
+      if (!code) continue;
+      if (!codes.has(code)) codes.set(code, new Set());
+      codes.get(code)!.add(l.dcType);
+    }
+    for (const [code, set] of codes.entries()) {
+      if (set.has("DEBIT") && set.has("CREDIT")) {
+        return alert(
+          `같은 계정코드(${code})가 차변/대변에 동시에 존재합니다. 상대계정을 넣어주세요.`
+        );
+      }
+    }
+    // 👆 여기까지
 
-//라인 검증
-for (const [i, l] of journal.lines.entries()) {
-if (!l.accountCode?.trim()) return  alert(`라인 ${i + 1}: 계정코드를 입력하세요`);
-if (!(Number(l.amount) > 0)) return alert(`라인 ${i + 1}: 금액은 0보다 커야 합니다.`);
-}
-//차대합 검증
-if (totals.debitTotal !== totals.creditTotal) {
-return  alert(`차변합(${totals.debitTotal})과 대변합(${totals.creditTotal})이 일치해야 저장됩니다.`);
-}
+      if (!journal.customerName?.trim())
+        return alert("거래처 선택하세요");
 
-//payload customid 강제 세팅
-const payload: any = {
-  ...journal, customerId,
-  journalNo: journal.journalNo?.trim() ? journal.journalNo : undefined,
-}
+      const matched: any =
+        (customerList as any[]).find(
+          (c) => c.customerName === journal.customerName
+        ) ??
+        (customerList as any[]).find((c) => c.name === journal.customerName);
 
-      if (selectedId) await axios.put(`${API_BASE}/${selectedId}`, journal);
-      else await axios.post(API_BASE, journal);
+      const customerId = matched?.id ?? matched?.customerId ?? null;
+      if (!customerId)
+        return alert("거래처를 목록에서 선택해 주세요(customerId 필요)");
+
+      for (const [i, l] of journal.lines.entries()) {
+        if (!l.accountCode?.trim())
+          return alert(`라인 ${i + 1}: 계정코드를 입력하세요`);
+        if (!(Number(l.amount) > 0))
+          return alert(`라인 ${i + 1}: 금액은 0보다 커야 합니다.`);
+      }
+
+      if (totals.debitTotal !== totals.creditTotal) {
+        return alert(
+          `차변합(${totals.debitTotal})과 대변합(${totals.creditTotal})이 일치해야 저장됩니다.`
+        );
+      }
+
+      // ✅ customerId 포함 payload를 실제로 전송해야 함
+      const payload: any = {
+        ...journal,
+        customerId,
+        journalNo: journal.journalNo?.trim() ? journal.journalNo.trim() : undefined,
+      };
+
+      if (selectedId) await api.put(`${API_BASE}/${selectedId}`, payload);
+      else await api.post(API_BASE, payload);
 
       await fetchJournals();
       handleClose();
     } catch (e) {
       console.error("저장 실패", e);
-      alert("저장실패 콘솔 확인")
+      alert("저장실패 콘솔 확인");
     }
   };
 
+  // ✅ 삭제
   const deleteJournal = async () => {
     if (!selectedId) return;
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
     try {
-      await axios.delete(`${API_BASE}/${selectedId}`);
+      await api.delete(`${API_BASE}/${selectedId}`);
       await fetchJournals();
       handleClose();
     } catch (e) {
       console.error("전표 삭제 실패", e);
-      alert("삭제실패 (콘솔 확인)")
+      alert("삭제실패 (콘솔 확인)");
     }
   };
 
@@ -291,7 +324,9 @@ const payload: any = {
                       type="search"
                       placeholder="전표번호/거래처/적요 검색"
                       value={keyword}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKeyword(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setKeyword(e.target.value)
+                      }
                       onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                         if (e.key === "Enter") fetchJournals();
                       }}
@@ -343,7 +378,6 @@ const payload: any = {
         </Row>
       </Container>
 
-      {/* ✅ 모달 분리 적용 */}
       <GeneralJournalModal
         show={show}
         selectedId={selectedId}
@@ -360,6 +394,4 @@ const payload: any = {
       />
     </>
   );
-};
-
-export default GeneralJournal;
+}

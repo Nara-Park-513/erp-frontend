@@ -37,6 +37,7 @@ import SalesInput from './10_sale/SalesInput';
 import SalesInput2 from './11_sale2/SalesInput2';
 import StockStatus from './12_stock/StockStatus';
 import StockMovement from './13_stockmove/StockMovement';
+
 //react나 vue에서 링크연결을 라우팅이라 합니다 npm install react-router-dom
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -45,6 +46,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
 //sass  연결
 import './assets/scss/style.scss';//리액트 에서는 sass컴파일 없이 사용
+import EApprovalMyDocs from './16_mydocs/EApprovalMyDocs';
+import NoticeList from './17_notice/NoticeList';
+import OrderProgress from './18_order/OrderProgress';
 
 
 
@@ -115,6 +119,9 @@ if  배열에 값이 있다면 그 값이 바뀔때 마다 실행된다
     <Route path="/forgot" element={<Forgot/>}/>
     <Route path="/auth/instagram" element={<InstagramRedirect />} />
 <Route path="/auth/kakao" element={<KakaoRedirect />} />
+<Route path="/mydocs" element={<EApprovalMyDocs/>}/>
+    <Route path="/notice" element={<NoticeList/>}/>
+<Route path="/order" element={<OrderProgress/>}/>
   </Routes>
 </BrowserRouter>
 </>

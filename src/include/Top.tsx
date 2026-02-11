@@ -44,6 +44,9 @@ const Top = () => {
 <NavLink to="/general">일반전표</NavLink>
 <NavLink to="/trade">판매조회</NavLink>
 <NavLink to="/custom">거래처리스트</NavLink>
+<NavLink to="/mydocs">전자결재</NavLink>
+<NavLink to="/notice">공지사항</NavLink>
+<NavLink to="/order">오더관리</NavLink>
         </Col>
     </Row>
 </Container>

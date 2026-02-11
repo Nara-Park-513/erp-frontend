@@ -38,7 +38,8 @@ api.interceptors.response.use(
   }
 );
 
-const API_BASE = "/api/sales/sales";
+// ✅ TradeService 쓰는 실제 API
+const API_BASE = "/api/acc/trades";
 
 const emptySales = (): Sales => ({
   salesNo: "",
@@ -57,47 +58,87 @@ export default function SalesInput() {
   const [salesList, setSalesList] = useState<Sales[]>([]);
   const [sales, setSales] = useState<Sales>(emptySales());
 
-  // 합계
+  // ✅ 합계(라인 합계)
   const totalAmount = useMemo(
     () => (sales.lines || []).reduce((s, l) => s + (Number(l.amount) || 0), 0),
     [sales.lines]
   );
 
-  // 거래처 목록 (GeneralJournal 방식 그대로)
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const res = await api.get("/api/acc/customers");
-        const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
-        // Customer 타입에 맞게 최소 정규화
-        const normalized: Customer[] = rows.map((c: any) => ({
-          id: c.id ?? c.customerId,
-          customerName: c.customerName ?? c.name ?? "",
-        }));
-        setCustomerList(normalized.filter((c) => c.id && c.customerName));
-      } catch (e) {
-        console.error("거래처 목록 조회 실패", e);
-      }
-    };
-    fetchCustomers();
-  }, []);
-
-  // 목록 조회
-  const fetchSales = async () => {
+  // ✅ 목록 조회 (customers를 인자로 받아서 customerName 보정)
+  const fetchSales = async (customers: Customer[] = []) => {
     try {
       const res = await api.get(API_BASE);
       const list = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
-      setSalesList(list);
+
+      const normalized: Sales[] = list.map((t: any) => {
+        const tradeLines = t.tradeLines ?? t.lines ?? [];
+        const lines: SalesLine[] = (tradeLines || []).map((l: any) => ({
+          itemName: l.itemName ?? l.item?.itemName ?? "",
+          qty: Number(l.qty ?? 0),
+          price: Number(l.unitPrice ?? l.price ?? 0),
+          amount: Number(
+            l.totalAmount ??
+              l.amount ??
+              (Number(l.qty ?? 0) * Number(l.unitPrice ?? 0))
+          ),
+          remark: l.remark ?? l.lineRemark ?? "",
+        }));
+
+        // ✅ 응답에 customerName이 없으면 customerId로 목록에서 찾아서 채움
+        const cname =
+          (t.customerName ?? "").trim() ||
+          customers.find((c) => c.id === (t.customerId ?? null))?.customerName ||
+          "";
+
+        return {
+          id: t.id,
+          salesNo: t.salesNo ?? t.tradeNo ?? "",
+          salesDate: t.salesDate ?? t.tradeDate ?? "",
+          customerId: t.customerId ?? null,
+          customerName: cname,
+          remark: t.remark ?? "",
+          totalAmount: Number(t.totalAmount ?? 0),
+          lines,
+        };
+      });
+
+      setSalesList(normalized);
     } catch (e) {
       console.error("판매 조회 실패", e);
     }
   };
 
+  // ✅ 거래처 목록 (GeneralJournal 방식 그대로) + 로딩 후 sales 재조회
   useEffect(() => {
-    fetchSales();
+    const fetchCustomers = async () => {
+      try {
+        const res = await api.get("/api/acc/customers");
+        const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
+        const normalized: Customer[] = rows.map((c: any) => ({
+          id: c.id ?? c.customerId,
+          customerName: c.customerName ?? c.name ?? "",
+        }));
+
+        const filtered = normalized.filter((c) => c.id && c.customerName);
+        setCustomerList(filtered);
+
+        // ✅ 거래처 받은 뒤 다시 조회하면 customerName이 보정돼서 내려감
+        fetchSales(filtered);
+      } catch (e) {
+        console.error("거래처 목록 조회 실패", e);
+      }
+    };
+    fetchCustomers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 라인 수정
+  // ✅ 초기 목록 조회(거래처 못 받아도 일단 조회)
+  useEffect(() => {
+    fetchSales();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ 라인 수정
   const updateLine = (idx: number, patch: Partial<SalesLine>) => {
     setSales((prev) => {
       const lines = (prev.lines || []).map((l, i) => {
@@ -124,19 +165,47 @@ export default function SalesInput() {
     }));
   };
 
-  // 신규
+  // ✅ 신규
   const openNew = () => {
     setSelectedId(null);
     setSales(emptySales());
     setShow(true);
   };
 
-  // 상세
+  // ✅ 상세
   const openDetail = async (id: number) => {
     try {
       const res = await api.get(`${API_BASE}/${id}`);
+      const t: any = res.data;
+
+      const tradeLines = t.tradeLines ?? t.lines ?? [];
+      const lines: SalesLine[] = (tradeLines || []).map((l: any) => ({
+        itemName: l.itemName ?? l.item?.itemName ?? "",
+        qty: Number(l.qty ?? 0),
+        price: Number(l.unitPrice ?? l.price ?? 0),
+        amount: Number(
+          l.totalAmount ?? l.amount ?? (Number(l.qty ?? 0) * Number(l.unitPrice ?? 0))
+        ),
+        remark: l.remark ?? l.lineRemark ?? "",
+      }));
+
+      const cname =
+        (t.customerName ?? "").trim() ||
+        customerList.find((c) => c.id === (t.customerId ?? null))?.customerName ||
+        "";
+
       setSelectedId(id);
-      setSales(res.data);
+      setSales({
+        id: t.id,
+        salesNo: t.salesNo ?? t.tradeNo ?? "",
+        salesDate: t.salesDate ?? t.tradeDate ?? "",
+        customerId: t.customerId ?? null,
+        customerName: cname,
+        remark: t.remark ?? "",
+        totalAmount: Number(t.totalAmount ?? 0),
+        lines,
+      });
+
       setShow(true);
     } catch (e) {
       console.error("판매 상세 조회 실패", e);
@@ -149,11 +218,12 @@ export default function SalesInput() {
     setSales(emptySales());
   };
 
-  // 저장
+  // ✅ 저장
   const saveSales = async () => {
     try {
       if (!sales.salesDate) return alert("판매일자를 입력하세요");
-      if (!sales.lines || sales.lines.length === 0) return alert("판매 라인을 1개 이상 입력하세요");
+      if (!sales.lines || sales.lines.length === 0)
+        return alert("판매 라인을 1개 이상 입력하세요");
 
       // ✅ 거래처는 리스트에서 선택 → customerId 필수
       const customerId = sales.customerId;
@@ -165,15 +235,38 @@ export default function SalesInput() {
         if (!(Number(l.price) >= 0)) return alert(`라인 ${i + 1}: 단가는 0 이상이어야 합니다.`);
       }
 
+      // ✅ tradeNo 필수라서 비어있으면 자동 생성
+      const tradeNo =
+        (sales.salesNo ?? "").trim() ||
+        `S-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${Date.now()}`;
+
+      const vat = Math.round(totalAmount * 0.1);
+
       const payload: any = {
-        ...sales,
-        salesNo: sales.salesNo?.trim() ? sales.salesNo.trim() : undefined,
+        tradeNo,
+        tradeDate: sales.salesDate,
+        tradeType: "SALES",
+
+        customerId, // ✅ 서버 DTO/서비스도 받아야 저장됨
+
+        // ✅ TradeService에서 필수(requireText)라서 반드시 보내야 함
+        counterAccountCode: "1110",
+
+        // ✅ 금액 (지금은 lines 합계를 supply로 보고 VAT 10% 계산)
+        supplyAmount: totalAmount,
+        vatAmount: vat,
+        feeAmount: 0,
+        totalAmount: totalAmount + vat,
+
+        remark: sales.remark ?? "",
+        status: "DRAFT",
       };
 
       if (selectedId) await api.put(`${API_BASE}/${selectedId}`, payload);
       else await api.post(API_BASE, payload);
 
-      await fetchSales();
+      // ✅ 저장 후, customerName 보정 위해 customerList 전달
+      await fetchSales(customerList);
       handleClose();
     } catch (e) {
       console.error("저장 실패", e);
@@ -181,14 +274,14 @@ export default function SalesInput() {
     }
   };
 
-  // 삭제
+  // ✅ 삭제
   const deleteSales = async () => {
     if (!selectedId) return;
     if (!window.confirm("삭제하시겠습니까?")) return;
 
     try {
       await api.delete(`${API_BASE}/${selectedId}`);
-      await fetchSales();
+      await fetchSales(customerList);
       handleClose();
     } catch (e) {
       console.error("판매 삭제 실패", e);
@@ -240,9 +333,7 @@ export default function SalesInput() {
                         <td>{s.salesDate}</td>
                         <td>{s.customerName}</td>
                         <td className="text-end">
-                          {(s.lines || [])
-                            .reduce((sum, l) => sum + (Number(l.amount) || 0), 0)
-                            .toLocaleString()}
+                          {Number(s.totalAmount ?? 0).toLocaleString()}
                         </td>
                       </tr>
                     ))}

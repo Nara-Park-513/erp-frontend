@@ -20,6 +20,7 @@ export type Sales = {
   customerName: string;
   remark?: string;
   lines: SalesLine[];
+  totalAmount?: number; // ✅ 헤더 총액(Trade.totalAmount 표시용)
 };
 
 export type Customer = {
