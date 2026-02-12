@@ -38,8 +38,7 @@ api.interceptors.response.use(
   }
 );
 
-// ✅ TradeService 쓰는 실제 API
-const API_BASE = "/api/acc/trades";
+const API_BASE = "/api/sales/sales";
 
 const emptySales = (): Sales => ({
   salesNo: "",
@@ -47,7 +46,7 @@ const emptySales = (): Sales => ({
   customerId: null,
   customerName: "",
   remark: "",
-  lines: [{ itemName: "", qty: 1, price: 0, amount: 0 }],
+  lines: [{ itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
 });
 
 export default function SalesInput() {
@@ -58,13 +57,11 @@ export default function SalesInput() {
   const [salesList, setSalesList] = useState<Sales[]>([]);
   const [sales, setSales] = useState<Sales>(emptySales());
 
-  // ✅ 합계(라인 합계)
   const totalAmount = useMemo(
     () => (sales.lines || []).reduce((s, l) => s + (Number(l.amount) || 0), 0),
     [sales.lines]
   );
 
-  // ✅ 목록 조회 (customers를 인자로 받아서 customerName 보정)
   const fetchSales = async (customers: Customer[] = []) => {
     try {
       const res = await api.get(API_BASE);
@@ -72,19 +69,19 @@ export default function SalesInput() {
 
       const normalized: Sales[] = list.map((t: any) => {
         const tradeLines = t.tradeLines ?? t.lines ?? [];
-        const lines: SalesLine[] = (tradeLines || []).map((l: any) => ({
-          itemName: l.itemName ?? l.item?.itemName ?? "",
-          qty: Number(l.qty ?? 0),
-          price: Number(l.unitPrice ?? l.price ?? 0),
-          amount: Number(
-            l.totalAmount ??
-              l.amount ??
-              (Number(l.qty ?? 0) * Number(l.unitPrice ?? 0))
-          ),
-          remark: l.remark ?? l.lineRemark ?? "",
-        }));
+        const lines: SalesLine[] = (tradeLines || []).map((l: any) => {
+          const qty = Number(l.qty ?? 0);
+          const unitPrice = Number(l.unitPrice ?? l.price ?? 0);
+          return {
+            itemId: l.itemId ?? l.item?.id ?? l.item?.itemId ?? null,
+            itemName: l.itemName ?? l.item?.itemName ?? "",
+            qty,
+            price: unitPrice,
+            amount: Number(l.totalAmount ?? l.amount ?? qty * unitPrice),
+            remark: l.remark ?? l.lineRemark ?? "",
+          };
+        });
 
-        // ✅ 응답에 customerName이 없으면 customerId로 목록에서 찾아서 채움
         const cname =
           (t.customerName ?? "").trim() ||
           customers.find((c) => c.id === (t.customerId ?? null))?.customerName ||
@@ -93,7 +90,7 @@ export default function SalesInput() {
         return {
           id: t.id,
           salesNo: t.salesNo ?? t.tradeNo ?? "",
-          salesDate: t.salesDate ?? t.tradeDate ?? "",
+          salesDate: String(t.salesDate ?? t.tradeDate ?? "").slice(0, 10),
           customerId: t.customerId ?? null,
           customerName: cname,
           remark: t.remark ?? "",
@@ -108,7 +105,6 @@ export default function SalesInput() {
     }
   };
 
-  // ✅ 거래처 목록 (GeneralJournal 방식 그대로) + 로딩 후 sales 재조회
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
@@ -122,7 +118,6 @@ export default function SalesInput() {
         const filtered = normalized.filter((c) => c.id && c.customerName);
         setCustomerList(filtered);
 
-        // ✅ 거래처 받은 뒤 다시 조회하면 customerName이 보정돼서 내려감
         fetchSales(filtered);
       } catch (e) {
         console.error("거래처 목록 조회 실패", e);
@@ -132,13 +127,11 @@ export default function SalesInput() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ 초기 목록 조회(거래처 못 받아도 일단 조회)
   useEffect(() => {
     fetchSales();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ 라인 수정
   const updateLine = (idx: number, patch: Partial<SalesLine>) => {
     setSales((prev) => {
       const lines = (prev.lines || []).map((l, i) => {
@@ -154,7 +147,7 @@ export default function SalesInput() {
   const addLine = () => {
     setSales((p) => ({
       ...p,
-      lines: [...(p.lines || []), { itemName: "", qty: 1, price: 0, amount: 0 }],
+      lines: [...(p.lines || []), { itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
     }));
   };
 
@@ -165,29 +158,40 @@ export default function SalesInput() {
     }));
   };
 
-  // ✅ 신규
   const openNew = () => {
     setSelectedId(null);
     setSales(emptySales());
     setShow(true);
   };
 
-  // ✅ 상세
   const openDetail = async (id: number) => {
     try {
       const res = await api.get(`${API_BASE}/${id}`);
       const t: any = res.data;
 
-      const tradeLines = t.tradeLines ?? t.lines ?? [];
-      const lines: SalesLine[] = (tradeLines || []).map((l: any) => ({
-        itemName: l.itemName ?? l.item?.itemName ?? "",
-        qty: Number(l.qty ?? 0),
-        price: Number(l.unitPrice ?? l.price ?? 0),
-        amount: Number(
-          l.totalAmount ?? l.amount ?? (Number(l.qty ?? 0) * Number(l.unitPrice ?? 0))
-        ),
-        remark: l.remark ?? l.lineRemark ?? "",
-      }));
+      const rawLines =
+        t.tradeLines ??
+        t.tradeLineList ??
+        t.lines ??
+        t.lineList ??
+        t.items ??
+        t.itemList ??
+        [];
+
+      const lines: SalesLine[] = (Array.isArray(rawLines) ? rawLines : []).map((l: any) => {
+        const qty = Number(l.qty ?? l.quantity ?? l.q ?? 0);
+        const unitPrice = Number(l.unitPrice ?? l.price ?? l.unit_price ?? 0);
+        const amount = Number(l.totalAmount ?? l.amount ?? l.lineAmount ?? qty * unitPrice);
+
+        return {
+          itemId: l.itemId ?? l.item?.id ?? l.item?.itemId ?? null,
+          itemName: String(l.itemName ?? l.item?.itemName ?? l.item?.name ?? l.name ?? ""),
+          qty,
+          price: unitPrice,
+          amount,
+          remark: l.remark ?? l.lineRemark ?? "",
+        };
+      });
 
       const cname =
         (t.customerName ?? "").trim() ||
@@ -196,14 +200,14 @@ export default function SalesInput() {
 
       setSelectedId(id);
       setSales({
-        id: t.id,
-        salesNo: t.salesNo ?? t.tradeNo ?? "",
-        salesDate: t.salesDate ?? t.tradeDate ?? "",
+        id: Number(t.id),
+        salesNo: String(t.salesNo ?? t.tradeNo ?? t.no ?? ""),
+        salesDate: String(t.salesDate ?? t.tradeDate ?? t.date ?? "").slice(0, 10),
         customerId: t.customerId ?? null,
         customerName: cname,
         remark: t.remark ?? "",
         totalAmount: Number(t.totalAmount ?? 0),
-        lines,
+        lines: lines.length > 0 ? lines : [{ itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
       });
 
       setShow(true);
@@ -218,24 +222,21 @@ export default function SalesInput() {
     setSales(emptySales());
   };
 
-  // ✅ 저장
   const saveSales = async () => {
     try {
       if (!sales.salesDate) return alert("판매일자를 입력하세요");
-      if (!sales.lines || sales.lines.length === 0)
-        return alert("판매 라인을 1개 이상 입력하세요");
+      if (!sales.lines || sales.lines.length === 0) return alert("판매 라인을 1개 이상 입력하세요");
 
-      // ✅ 거래처는 리스트에서 선택 → customerId 필수
       const customerId = sales.customerId;
       if (!customerId) return alert("거래처를 목록에서 선택해 주세요(customerId 필요)");
 
       for (const [i, l] of sales.lines.entries()) {
+        if (!l.itemId) return alert(`라인 ${i + 1}: 품목을 선택하세요(itemId 필요)`);
         if (!l.itemName?.trim()) return alert(`라인 ${i + 1}: 품목명을 입력하세요`);
         if (!(Number(l.qty) > 0)) return alert(`라인 ${i + 1}: 수량은 0보다 커야 합니다.`);
         if (!(Number(l.price) >= 0)) return alert(`라인 ${i + 1}: 단가는 0 이상이어야 합니다.`);
       }
 
-      // ✅ tradeNo 필수라서 비어있으면 자동 생성
       const tradeNo =
         (sales.salesNo ?? "").trim() ||
         `S-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${Date.now()}`;
@@ -246,26 +247,38 @@ export default function SalesInput() {
         tradeNo,
         tradeDate: sales.salesDate,
         tradeType: "SALES",
-
-        customerId, // ✅ 서버 DTO/서비스도 받아야 저장됨
-
-        // ✅ TradeService에서 필수(requireText)라서 반드시 보내야 함
+        customerId,
         counterAccountCode: "1110",
-
-        // ✅ 금액 (지금은 lines 합계를 supply로 보고 VAT 10% 계산)
         supplyAmount: totalAmount,
         vatAmount: vat,
         feeAmount: 0,
         totalAmount: totalAmount + vat,
-
         remark: sales.remark ?? "",
         status: "DRAFT",
+
+        tradeLines: (sales.lines || []).map((l) => {
+          const qty = Number(l.qty || 0);
+          const unitPrice = Number(l.price || 0);
+
+          const supplyAmount = qty * unitPrice;
+          const vatAmount = Math.round(supplyAmount * 0.1);
+          const totalAmount = supplyAmount + vatAmount;
+
+          return {
+            itemId: l.itemId ? Number(l.itemId) : null,
+            qty,
+            unitPrice,
+            supplyAmount,
+            vatAmount,
+            totalAmount,
+            remark: l.remark ?? "",
+          };
+        }),
       };
 
       if (selectedId) await api.put(`${API_BASE}/${selectedId}`, payload);
       else await api.post(API_BASE, payload);
 
-      // ✅ 저장 후, customerName 보정 위해 customerList 전달
       await fetchSales(customerList);
       handleClose();
     } catch (e) {
@@ -274,7 +287,6 @@ export default function SalesInput() {
     }
   };
 
-  // ✅ 삭제
   const deleteSales = async () => {
     if (!selectedId) return;
     if (!window.confirm("삭제하시겠습니까?")) return;
@@ -330,7 +342,7 @@ export default function SalesInput() {
                         onClick={() => openDetail(s.id!)}
                       >
                         <td>{s.salesNo}</td>
-                        <td>{s.salesDate}</td>
+                        <td>{String(s.salesDate ?? "").slice(0, 10)}</td>
                         <td>{s.customerName}</td>
                         <td className="text-end">
                           {Number(s.totalAmount ?? 0).toLocaleString()}

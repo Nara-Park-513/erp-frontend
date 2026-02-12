@@ -9,8 +9,9 @@ import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
 import { BtnRight, MainSubmitBtn, WhiteBtn } from "../stylesjs/Button.styles";
 import Lnb from "../include/Lnb";
+import NoticeModal from "../component/notice/NoticeModal";
 
-/** ✅ axios (SalesPurchaseTrade랑 동일 패턴) */
+/** axios 설정 */
 const api = axios.create({
   baseURL: "http://localhost:8888",
   timeout: 10000,
@@ -37,21 +38,36 @@ api.interceptors.response.use(
   }
 );
 
-/** ✅ 여기만 너 백엔드에 맞게 바꿔 */
 const API_BASE = "/api/notice";
 
 type NoticeRow = {
   id: number;
   title: string;
+  content?: string;
   writer: string;
-  createdAt: string; // 날짜
-  isPinned?: boolean; // 상단고정(있으면)
-  viewCount?: number; // 조회수(있으면)
+  createdAt: string;
+  isPinned?: boolean;
+  viewCount?: number;
 };
+
+// 임시 테스트용 로그인 유저
+const currentUser = { id: 1 };
 
 export default function NoticeList() {
   const [rows, setRows] = useState<NoticeRow[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [showModal, setShowModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selected, setSelected] = useState<NoticeRow | null>(null);
+
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    isPinned: false,
+    writer: "관리자",
+    createdAt: new Date().toISOString().slice(0, 10),
+  });
 
   const fetchList = async () => {
     setLoading(true);
@@ -66,18 +82,24 @@ export default function NoticeList() {
         (Array.isArray(data?.data) ? data.data : null) ??
         [];
 
-      const normalized: NoticeRow[] = list.map((r: any) => ({
-        id: Number(r.id),
-        title: String(r.title ?? r.subject ?? ""),
-        writer: String(r.writer ?? r.createdBy ?? r.author ?? ""),
-        createdAt: String(r.createdAt ?? r.createdDate ?? r.date ?? ""),
-        isPinned: Boolean(r.isPinned ?? r.pinned ?? false),
-        viewCount: r.viewCount != null ? Number(r.viewCount) : undefined,
-      }));
+      const normalized: NoticeRow[] = list.map((r: any) => {
+        const writerName = r.member?.username ?? r.writer ?? r.createdBy ?? r.author ?? "관리자";
+        const createdAtRaw = r.createdAt ?? r.createdDate ?? r.date ?? new Date().toISOString();
 
-      // ✅ pinned가 있으면 상단 정렬
+        return {
+          id: Number(r.id),
+          title: String(r.title ?? r.subject ?? ""),
+          writer: "관리자", // 작성자 강제
+          createdAt: createdAtRaw
+            ? new Date(String(createdAtRaw)).toISOString().slice(0, 10)
+            : new Date().toISOString().slice(0, 10),
+          content: String(r.content ?? ""),
+          isPinned: Boolean(r.isPinned ?? r.pinned ?? false),
+          viewCount: r.viewCount != null ? Number(r.viewCount) : undefined,
+        };
+      });
+
       normalized.sort((a, b) => Number(b.isPinned) - Number(a.isPinned));
-
       setRows(normalized);
     } catch (e: any) {
       console.error("공지사항 조회 실패", e);
@@ -90,17 +112,80 @@ export default function NoticeList() {
 
   useEffect(() => {
     fetchList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const openView = (id: number) => {
-    // ✅ 라우팅 있으면 navigate로 바꿔도 됨
-    window.location.href = `/notice/${id}`;
+  const openView = async (id: number) => {
+    try {
+      const res = await api.get(`${API_BASE}/${id}`);
+      const r = res.data;
+
+      setSelected({
+        id: Number(r.id),
+        title: String(r.title ?? r.subject ?? ""),
+        content: String(r.content ?? ""),
+        writer: "관리자",
+        createdAt: r.createdAt
+          ? new Date(String(r.createdAt)).toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10),
+        isPinned: Boolean(r.isPinned ?? r.pinned ?? false),
+        viewCount: r.viewCount != null ? Number(r.viewCount) : undefined,
+      });
+
+      setIsEditMode(false);
+      setShowModal(true);
+    } catch {
+      alert("상세조회 실패");
+    }
   };
 
-  const menuList = [
-    { key: "notice", label: "공지사항", path: "/notice" },
-  ];
+  const openCreate = () => {
+    const now = new Date();
+    setForm({
+      title: "",
+      content: "",
+      isPinned: false,
+      writer: "관리자",
+      createdAt: now.toISOString().slice(0, 10),
+    });
+    setSelected(null);
+    setIsEditMode(true);
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const payload = {
+        ...form,
+        writer: "관리자",
+        createdAt: selected ? selected.createdAt : new Date().toISOString(),
+      };
+
+      if (selected) {
+        await api.put(`${API_BASE}/${selected.id}`, payload);
+      } else {
+        await api.post(API_BASE, {
+          memberId: currentUser.id,
+          ...payload,
+        });
+      }
+      setShowModal(false);
+      fetchList();
+    } catch {
+      alert("저장실패");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selected) return;
+    if (!window.confirm("삭제하시겠습니까")) return;
+    try {
+      await api.delete(`${API_BASE}/${selected.id}`);
+      setShowModal(false);
+      fetchList();
+    } catch {
+      alert("삭제 실패");
+    }
+  };
 
   return (
     <>
@@ -115,7 +200,10 @@ export default function NoticeList() {
           <Col>
             <Flex>
               <Left>
-                <Lnb menuList={menuList} title="공지사항" />
+                <Lnb
+                  menuList={[{ key: "notice", label: "공지사항", path: "/notice" }]}
+                  title="공지사항"
+                />
               </Left>
 
               <Right>
@@ -157,9 +245,7 @@ export default function NoticeList() {
 
                         {rows.map((r) => (
                           <tr key={r.id}>
-                            <td className="text-center">
-                              {r.isPinned ? "공지" : "-"}
-                            </td>
+                            <td className="text-center">{r.isPinned ? "공지" : "-"}</td>
                             <td style={{ whiteSpace: "pre-line" }}>
                               <span
                                 style={{ cursor: "pointer", fontWeight: r.isPinned ? 700 : 400 }}
@@ -169,15 +255,9 @@ export default function NoticeList() {
                               </span>
                             </td>
                             <td className="text-center">{r.writer}</td>
+                            <td className="text-center">{r.createdAt}</td>
                             <td className="text-center">
-                              {String(r.createdAt ?? "").slice(0, 10)}
-                            </td>
-                            <td className="text-center">
-                              <Button
-                                size="sm"
-                                variant="link"
-                                onClick={() => openView(r.id)}
-                              >
+                              <Button size="sm" variant="link" onClick={() => openView(r.id)}>
                                 보기
                               </Button>
                             </td>
@@ -193,15 +273,34 @@ export default function NoticeList() {
 
                 <BtnRight style={{ marginTop: 12 }}>
                   <WhiteBtn onClick={fetchList}>새로고침</WhiteBtn>
-                  <MainSubmitBtn onClick={() => (window.location.href = "/notice/new")}>
-                    신규
-                  </MainSubmitBtn>
+                  <MainSubmitBtn onClick={openCreate}>신규</MainSubmitBtn>
                 </BtnRight>
               </Right>
             </Flex>
           </Col>
         </Row>
       </Container>
+
+      <NoticeModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        data={selected}
+        isEditMode={isEditMode}
+        form={form}
+        setForm={setForm}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        onEditMode={() => {
+          setForm({
+            title: selected?.title ?? "",
+            content: selected?.content ?? "",
+            isPinned: selected?.isPinned ?? false,
+            writer: "관리자",
+            createdAt: selected?.createdAt ?? new Date().toISOString().slice(0, 10),
+          });
+          setIsEditMode(true);
+        }}
+      />
     </>
   );
 }

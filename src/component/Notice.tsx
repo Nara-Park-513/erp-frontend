@@ -1,15 +1,16 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Table } from "react-bootstrap";
+import { Table, Modal, Button } from "react-bootstrap";
 
-/** ✅ 너 기존 마크업/클래스 훼손 안 하고, "데이터만" 붙일 타입 */
-type PayRow = {
+/** ✅ 공지사항 타입 */
+type NoticeRow = {
   id: number;
-  draftDate: string;
   title: string;
-  drafter: string;
-  approver: string;
-  status: string;
+  content?: string;
+  writer: string;
+  createdAt: string;
+  isPinned?: boolean;
+  viewCount?: number;
 };
 
 /** ✅ axios (JWT 토큰 있으면 자동 첨부) */
@@ -17,7 +18,6 @@ const api = axios.create({
   baseURL: "http://localhost:8888",
   timeout: 10000,
 });
-
 api.interceptors.request.use((config) => {
   const token =
     localStorage.getItem("token") ||
@@ -30,7 +30,6 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
-
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -39,15 +38,19 @@ api.interceptors.response.use(
   }
 );
 
-/** ✅ 여기만 너 백엔드 경로로 바꿔 */
-const API_BASE = "/api/notices"; // 예: 공지사항 목록
+/** ✅ 여기만 백엔드 경로로 */
+const API_BASE = "/api/notice";
 
-const Pay = () => {
-  /** ✅ 추가: 서버데이터 state */
-  const [rows, setRows] = useState<PayRow[]>([]);
+const Notice = () => {
+  /** ✅ 서버 데이터 state */
+  const [rows, setRows] = useState<NoticeRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  /** ✅ 추가: 목록 조회 */
+  /** ✅ 모달 state */
+  const [showModal, setShowModal] = useState(false);
+  const [selected, setSelected] = useState<NoticeRow | null>(null);
+
+  /** ✅ 목록 조회 */
   const fetchList = async () => {
     setLoading(true);
     try {
@@ -60,15 +63,19 @@ const Pay = () => {
         (Array.isArray(data?.items) ? data.items : null) ??
         [];
 
-      const normalized: PayRow[] = list.map((r: any) => ({
-        id: Number(r.id ?? r.noticeId ?? r.docId ?? 0),
-        draftDate: String(r.draftDate ?? r.noticeDate ?? r.date ?? r.createdAt ?? ""),
+      const normalized: NoticeRow[] = list.map((r: any) => ({
+        id: Number(r.id ?? r.noticeId ?? 0),
         title: String(r.title ?? r.subject ?? ""),
-        drafter: String(r.drafter ?? r.writer ?? r.createdBy ?? "guest"),
-        approver: String(r.approver ?? r.approverName ?? "대표이사"),
-        status: String(r.progressStatus ?? r.status ?? "진행중"),
+        content: String(r.content ?? ""),
+        writer: "관리자", // 강제
+        createdAt: r.createdAt
+          ? new Date(String(r.createdAt)).toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10),
+        isPinned: Boolean(r.isPinned ?? r.pinned ?? false),
+        viewCount: r.viewCount != null ? Number(r.viewCount) : undefined,
       }));
 
+      normalized.sort((a, b) => Number(b.isPinned) - Number(a.isPinned));
       setRows(normalized);
     } catch (e) {
       console.error("공지사항 조회 실패", e);
@@ -78,20 +85,17 @@ const Pay = () => {
     }
   };
 
-  /** ✅ 추가: 최초 1회 조회 */
+  /** ✅ 최초 1회 조회 */
   useEffect(() => {
     fetchList();
   }, []);
 
-  /** ✅ 추가: 보기/복사 핸들러(필요하면 라우팅으로 바꿔) */
+  /** ✅ 보기 핸들러 */
   const onView = (id: number) => {
-    // 예: 상세페이지로 이동
-    window.location.href = `/notices/${id}`;
-  };
-
-  const onCopy = (id: number) => {
-    // 예: 신규작성에 복사 파라미터
-    window.location.href = `/notices/new?copyFrom=${id}`;
+    const notice = rows.find((r) => r.id === id);
+    if (!notice) return;
+    setSelected(notice);
+    setShowModal(true);
   };
 
   return (
@@ -101,58 +105,74 @@ const Pay = () => {
           <h4 className="fs-16-600-black">공지사항</h4>
           <div className=""></div>
         </div>
-        <h5 className="my-2 fs-14-400-gray ">내 기안문서</h5>
+
+        <h5 className="my-2 fs-14-400-gray">내 기안문서</h5>
+
         <div className="table-wrap">
-          <Table variant="table-bordered " className="draft" responsive>
-            <thead className="">
+          <Table variant="table-bordered" className="draft" responsive>
+            <thead>
               <tr className="text-center">
-                <th>기안일자</th>
+                <th>구분</th>
                 <th>제목</th>
-                <th>기안자</th>
-                <th>결재자</th>
-                <th>진행상태</th>
-                <th>결재</th>
-                <th>기안서복사</th>
+                <th>작성자</th>
+                <th>작성일</th>
+                <th>상세</th>
+                <th>조회</th>
               </tr>
             </thead>
             <tbody>
-              {/* ✅ 추가: 데이터 없을 때 */}
+              {/* 데이터 없을 때 */}
               {rows.length === 0 && (
                 <tr className="text-center">
-                  <td colSpan={7}>
+                  <td colSpan={6}>
                     {loading ? "불러오는 중..." : "데이터가 없습니다"}
                   </td>
                 </tr>
               )}
 
-              {/* ✅ 추가: 서버 데이터 렌더 */}
+              {/* 서버 데이터 렌더 */}
               {rows.map((r) => (
                 <tr key={r.id} className="text-center">
-                  <td>{r.draftDate}</td>
-                  <td>{r.title}</td>
-                  <td>{r.drafter}</td>
-                  <td>{r.approver}</td>
-                  <td>{r.status}</td>
-                  <td
-                    style={{ cursor: "pointer", color: "#0d6efd" }}
-                    onClick={() => onView(r.id)}
-                  >
+                  <td>{r.isPinned ? "공지" : "-"}</td>
+                  <td style={{ whiteSpace: "pre-line", cursor: "pointer", fontWeight: r.isPinned ? 700 : 400 }} onClick={() => onView(r.id)}>
+                    {r.title}
+                  </td>
+                  <td>{r.writer}</td>
+                  <td>{r.createdAt}</td>
+                  <td style={{ cursor: "pointer", color: "#0d6efd" }} onClick={() => onView(r.id)}>
                     보기
                   </td>
-                  <td
-                    style={{ cursor: "pointer", color: "#0d6efd" }}
-                    onClick={() => onCopy(r.id)}
-                  >
-                    복사
-                  </td>
+                  <td>{r.viewCount != null ? r.viewCount.toLocaleString() : "-"}</td>
                 </tr>
               ))}
             </tbody>
           </Table>
         </div>
       </div>
+
+      {/* 읽기 전용 모달 */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>{selected?.title}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            <strong>작성자:</strong> {selected?.writer}
+          </p>
+          <p>
+            <strong>작성일:</strong> {selected?.createdAt}
+          </p>
+          <hr />
+          <div style={{ whiteSpace: "pre-line" }}>{selected?.content}</div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            닫기
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };
 
-export default Pay;
+export default Notice;

@@ -1,16 +1,9 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Table } from "react-bootstrap";
+import { Table, Button, Modal } from "react-bootstrap";
+import OrderProgressModal from "../component/orders/OrderProgressModal";
 
-/** ✅ 추가: 타입 */
-type OrderRow = {
-  id: number;
-  orderNo: string;
-  orderName: string;
-  step: string;
-};
-
-/** ✅ 추가: axios */
+/** axios */
 const api = axios.create({
   baseURL: "http://localhost:8888",
   timeout: 10000,
@@ -37,51 +30,84 @@ api.interceptors.response.use(
   }
 );
 
-/** ✅ 추가: 백엔드 경로만 맞추면 됨 */
-const API_BASE = "/api/orders";
+/** 백엔드 경로 */
+const API_LIST = "/api/orders/progress";
+
+type OrderProgressRow = {
+  id: number;
+  orderNo: string;
+  orderName: string;
+  progressText: string;
+};
+
 
 const OrderState = () => {
-  /** ✅ 추가: state */
-  const [rows, setRows] = useState<OrderRow[]>([]);
+  /** ✅ state */
+  const [rows, setRows] = useState<OrderProgressRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  /** ✅ 추가: 목록 조회 */
-  const fetchList = async () => {
+  /** 모달 상태 */
+  const [showModal, setShowModal] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  /** ✅ 목록 조회 */
+ const fetchList = async () => {
     setLoading(true);
     try {
-      const res = await api.get(API_BASE);
+      const res = await api.get(API_LIST);
       const data = res.data;
 
+      // 배열로 변환: API마다 구조 다를 수 있음
       const list: any[] =
-        (Array.isArray(data) ? data : null) ??
-        (Array.isArray(data?.content) ? data.content : null) ??
-        (Array.isArray(data?.items) ? data.items : null) ??
-        [];
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data.content)
+          ? data.content
+          : Array.isArray(data.items)
+          ? data.items
+          : Array.isArray(data.data)
+          ? data.data
+          : [];
 
-      const normalized: OrderRow[] = list.map((r: any) => ({
+      const normalized: OrderProgressRow[] = list.map((r: any) => ({
         id: Number(r.id ?? r.orderId ?? 0),
-        orderNo: String(r.orderNo ?? r.no ?? ""),
+        orderNo: String(r.orderNo ?? r.orderCode ?? r.no ?? ""),
         orderName: String(r.orderName ?? r.name ?? ""),
-        step: String(r.step ?? r.progress ?? ""),
+        progressText: String(
+          r.progressText ?? r.progress ?? r.stepName ?? r.statusText ?? r.status ?? "-"
+        ),
       }));
 
       setRows(normalized);
-    } catch (e) {
-      console.error("오더 목록 조회 실패", e);
+    } catch (e: any) {
+      console.error("오더 진행단계 조회 실패", e);
       setRows([]);
     } finally {
       setLoading(false);
     }
   };
 
-  /** ✅ 추가: 최초 1회 */
+
+  /** ✅ 최초 1회 */
   useEffect(() => {
     fetchList();
   }, []);
 
-  /** ✅ 추가: 상세보기 */
-  const onView = (id: number) => {
-    window.location.href = `/orders/${id}`;
+ /** 보기 모달 */
+  const openModalForEdit = (id: number) => {
+    setSelectedId(id);
+    setShowModal(true);
+  };
+
+  /** 신규 모달 */
+  const openModalForNew = () => {
+    setSelectedId(null);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedId(null);
   };
 
   return (
@@ -105,7 +131,7 @@ const OrderState = () => {
               </tr>
             </thead>
             <tbody>
-              {/* ✅ 추가: 비어있을 때 */}
+              {/* 데이터 없을 때 */}
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={4} className="text-center">
@@ -114,30 +140,36 @@ const OrderState = () => {
                 </tr>
               )}
 
-              {/* ✅ 추가: 서버 데이터 */}
+              {/* 서버 데이터 */}
               {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.orderNo}</td>
-                  <td>{r.orderName}</td>
-                  <td>{r.step}</td>
-                  <td>
-                    <a
-                      href="#!"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onView(r.id);
-                      }}
-                    >
-                      보기
-                    </a>
+                          <tr key={r.id}>
+                            <td>{r.orderNo}</td>
+                            <td>{r.orderName}</td>
+                            <td>{r.progressText}</td>
+                            <td className="text-center">
+                              <Button
+                                size="sm"
+                                variant="link"
+                                onClick={() => openModalForEdit(r.id)}
+                              >
+                                보기
+                    </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot></tfoot>
           </Table>
         </div>
       </div>
+
+      {/* 모달 */}
+<OrderProgressModal
+        show={showModal}
+        id={selectedId}
+        onHide={closeModal}
+        onChanged={fetchList}
+      />
+
     </>
   );
 };

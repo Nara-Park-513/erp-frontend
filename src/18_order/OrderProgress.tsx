@@ -1,3 +1,4 @@
+
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Table, Button } from "react-bootstrap";
@@ -9,6 +10,8 @@ import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
 import { BtnRight, MainSubmitBtn, WhiteBtn } from "../stylesjs/Button.styles";
 import Lnb from "../include/Lnb";
+
+import OrderProgressModal from "../component/orders/OrderProgressModal";
 
 /** ✅ axios (동일 패턴) */
 const api = axios.create({
@@ -38,23 +41,27 @@ api.interceptors.response.use(
 );
 
 /** ✅ 여기만 너 백엔드에 맞게 바꿔 */
-const API_BASE = "/api/orders/progress";
+const API_LIST = "/api/orders/progress";
 
 type OrderProgressRow = {
-  id: number; // 내부 id
-  orderNo: string; // 오더관리번호
-  orderName: string; // 오더관리명
-  progressText: string; // 진행단계(문자열로 보여줄 값)
+  id: number;
+  orderNo: string;
+  orderName: string;
+  progressText: string;
 };
 
 export default function OrderProgress() {
   const [rows, setRows] = useState<OrderProgressRow[]>([]);
   const [loading, setLoading] = useState(false);
 
+  /** ✅ 모달 상태 */
+  const [showModal, setShowModal] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null); // null이면 신규
+
   const fetchList = async () => {
     setLoading(true);
     try {
-      const res = await api.get(API_BASE);
+      const res = await api.get(API_LIST);
       const data = res.data;
 
       const list: any[] =
@@ -93,8 +100,21 @@ export default function OrderProgress() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const openView = (id: number) => {
-    window.location.href = `/orders/progress/${id}`;
+  /** ✅ 보기(수정/삭제) */
+  const openModalForEdit = (id: number) => {
+    setSelectedId(id);
+    setShowModal(true);
+  };
+
+  /** ✅ 신규 */
+  const openModalForNew = () => {
+    setSelectedId(null);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedId(null);
   };
 
   const menuList = [{ key: "orders", label: "오더진행단계", path: "/orders/progress" }];
@@ -162,7 +182,11 @@ export default function OrderProgress() {
                             <td>{r.orderName}</td>
                             <td>{r.progressText || "-"}</td>
                             <td className="text-center">
-                              <Button size="sm" variant="link" onClick={() => openView(r.id)}>
+                              <Button
+                                size="sm"
+                                variant="link"
+                                onClick={() => openModalForEdit(r.id)}
+                              >
                                 보기
                               </Button>
                             </td>
@@ -175,15 +199,23 @@ export default function OrderProgress() {
 
                 <BtnRight style={{ marginTop: 12 }}>
                   <WhiteBtn onClick={fetchList}>새로고침</WhiteBtn>
-                  <MainSubmitBtn onClick={() => (window.location.href = "/orders/progress/new")}>
-                    신규
-                  </MainSubmitBtn>
+
+                  {/* ✅ 신규도 모달 */}
+                  <MainSubmitBtn onClick={openModalForNew}>신규</MainSubmitBtn>
                 </BtnRight>
               </Right>
             </Flex>
           </Col>
         </Row>
       </Container>
+
+      {/* ✅ 신규/수정/삭제 모달 */}
+      <OrderProgressModal
+        show={showModal}
+        id={selectedId} // null이면 신규
+        onHide={closeModal}
+        onChanged={fetchList}
+      />
     </>
   );
 }

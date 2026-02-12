@@ -1,10 +1,11 @@
-
 import { Button, Modal, Table, Form } from "react-bootstrap";
 import { RoundRect } from "../../stylesjs/Content.styles";
 import { InputGroup, MidLabel } from "../../stylesjs/Input.styles";
 import { W30, W70 } from "../../stylesjs/Util.styles";
 
 export type SalesLine = {
+itemId?: number | null;   // ✅ 동일하게 추가
+
   itemName: string;
   qty: number;
   price: number;
@@ -20,7 +21,7 @@ export type Sales = {
   customerName: string;
   remark?: string;
   lines: SalesLine[];
-  totalAmount?: number; // ✅ 헤더 총액(Trade.totalAmount 표시용)
+  totalAmount?: number;
 };
 
 export type Customer = {
@@ -99,7 +100,6 @@ export default function SalesModal({
             </W70>
           </InputGroup>
 
-          {/* ✅ 거래처: 리스트 선택 */}
           <InputGroup className="my-3">
             <W30>
               <MidLabel>거래처</MidLabel>
@@ -144,59 +144,87 @@ export default function SalesModal({
 
           <hr />
 
-          <Table bordered>
-            <thead>
-              <tr>
-                <th>품목</th>
-                <th style={{ width: 120 }}>수량</th>
-                <th style={{ width: 150 }}>단가</th>
-                <th style={{ width: 150 }}>금액</th>
-                <th style={{ width: 90 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(sales.lines || []).map((l, idx) => (
-                <tr key={idx}>
-                  <td>
-                    <Form.Control
-                      value={l.itemName}
-                      onChange={(e) =>
-                        updateLine(idx, { itemName: e.target.value })
-                      }
-                    />
-                  </td>
-                  <td>
-                    <Form.Control
-                      type="number"
-                      value={l.qty}
-                      onChange={(e) =>
-                        updateLine(idx, { qty: Number(e.target.value) })
-                      }
-                    />
-                  </td>
-                  <td>
-                    <Form.Control
-                      type="number"
-                      value={l.price}
-                      onChange={(e) =>
-                        updateLine(idx, { price: Number(e.target.value) })
-                      }
-                    />
-                  </td>
-                  <td className="text-end">{(Number(l.amount) || 0).toLocaleString()}</td>
-                  <td className="text-end">
-                    <Button
-                      size="sm"
-                      variant="outline-danger"
-                      onClick={() => removeLine(idx)}
-                    >
-                      삭제
-                    </Button>
-                  </td>
+          {/* ✅ 여기부터: "라인이 안보이는" 문제 방지용 안전 스타일 */}
+          <div style={{ overflowX: "auto" }}>
+            <Table
+              bordered
+              responsive
+              style={{
+                tableLayout: "fixed",
+                width: "100%",
+                background: "white",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th style={{ width: "45%" }}>품목</th>
+                  <th style={{ width: 120 }}>수량</th>
+                  <th style={{ width: 150 }}>단가</th>
+                  <th style={{ width: 150 }}>금액</th>
+                  <th style={{ width: 90 }}></th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+
+              <tbody
+                style={{
+                  // ✅ styled-components에서 tbody에 display:flex 같은게 먹으면 깨짐 → 강제로 복구
+                  display: "table-row-group",
+                }}
+              >
+                {(sales.lines || []).length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="text-center">
+                      라인이 없습니다. "라인 추가"를 눌러주세요.
+                    </td>
+                  </tr>
+                )}
+
+                {(sales.lines || []).map((l, idx) => (
+                  <tr key={idx}>
+                    <td style={{ verticalAlign: "middle" }}>
+                      <Form.Control
+                        value={l.itemName}
+                        onChange={(e) =>
+                          updateLine(idx, { itemName: e.target.value })
+                        }
+                      />
+                    </td>
+                    <td style={{ verticalAlign: "middle" }}>
+                      <Form.Control
+                        type="number"
+                        value={l.qty}
+                        onChange={(e) =>
+                          updateLine(idx, { qty: Number(e.target.value) })
+                        }
+                      />
+                    </td>
+                    <td style={{ verticalAlign: "middle" }}>
+                      <Form.Control
+                        type="number"
+                        value={l.price}
+                        onChange={(e) =>
+                          updateLine(idx, { price: Number(e.target.value) })
+                        }
+                      />
+                    </td>
+                    <td className="text-end" style={{ verticalAlign: "middle" }}>
+                      {(Number(l.amount) || 0).toLocaleString()}
+                    </td>
+                    <td className="text-end" style={{ verticalAlign: "middle" }}>
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        onClick={() => removeLine(idx)}
+                      >
+                        삭제
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+          {/* ✅ 여기까지 */}
 
           <Button size="sm" onClick={addLine}>
             라인 추가
