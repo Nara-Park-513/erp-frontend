@@ -1,0 +1,15 @@
+.bg-login-image {
+  background-image: url("/public/img/1login.png");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  min-height: 520px;
+}
+
+.bg-register-image {
+  background-image: url("public/img/2makeaccount.jpg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  min-height: 650px; /* 회원가입은 폼이 길어서 좀 더 크게 */
+}

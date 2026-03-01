@@ -1,0 +1,30 @@
+.btn-google,
+.btn-facebook {
+  background-color: #f9fafb !important; /* 연한 회색 */
+  color: #374151 !important;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-google:hover {
+  background-color: #fef2f2; /* 아주 연한 Google 레드 */
+}
+
+.btn-facebook:hover {
+  background-color: #eff4ff; /* 아주 연한 FB 블루 */
+}
+.login-panel {
+    background: #f8fbff; /* 거의 흰색에 가까운 블루 */
+  }
+
+  .btn-login {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+  }
+  
+.btn-user{
+    font-size: .8rem; 
+    border-radius: 10rem;
+    padding:.75rem 1rem;
+}
+.btn-block{
+display:block; width:100%;
+}

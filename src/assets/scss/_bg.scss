@@ -1,0 +1,25 @@
+.bg-gradient-primary {
+    min-height: 100vh;
+    background: linear-gradient(
+      135deg,
+      #e9efff,
+      #f4f7ff
+    );
+    background-repeat: no-repeat;
+  }
+  
+.bg-register-image {
+    background: url('/img/erp.png');    
+    background-position: center;
+    background-size: cover;
+}
+.bg-password-image{
+    background: url('/img/erp.png');    
+    background-position: center;
+    background-size: cover;
+}
+.bg-login-image{
+    background: url('/img/erp.png');    
+    background-position: center;
+    background-size: cover;
+}
