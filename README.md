@@ -50,20 +50,23 @@ React + TypeScript 기반의 ERP 프론트엔드 애플리케이션입니다.
 ## 📁 프로젝트 구조 (예시)
 
 
-src
-┣ pages
-┃ ┣ Welcome.tsx
-┃ ┣ Login.tsx
-┃ ┣ Signup.tsx
-┃ ┣ ERPHome.tsx
-┃ ┗ Admin.tsx
-┣ components
-┃ ┗ Header.tsx
-┣ auth
-┃ ┣ auth.ts
-┃ ┣ RequireAuth.tsx
-┃ ┗ RequireAdmin.tsx
-┗ App.tsx
+erp-frontend
+├── src
+│ ├── api # API 요청 정의 및 서비스 모듈
+│ ├── assets # 이미지 / 아이콘 / 정적 자원
+│ ├── components # 공통 UI 컴포넌트
+│ ├── hooks # 커스텀 훅
+│ ├── pages # 페이지 컴포넌트
+│ ├── routes # 라우팅 관련 설정
+│ ├── styles # 전역/공통 스타일
+│ ├── App.tsx
+│ ├── Router.tsx
+│ └── main.tsx
+├── public
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── .gitignore
 
 
 ---
