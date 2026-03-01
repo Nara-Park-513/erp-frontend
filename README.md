@@ -1,194 +1,115 @@
-# ERP Frontend Web Application
+# ERP Frontend
 
-본 프로젝트는 ERP 시스템의 **프론트엔드 아키텍처 및 UI/UX 설계 역량**에 초점을 둔 포트폴리오 프로젝트입니다.  
-실제 ERP/MES 환경을 가정한 백엔드 REST API 구조를 기준으로 화면 연계를 고려하였으며,  
-프론트엔드에서는 **인증·권한·업무 흐름 중심의 화면 설계와 상태 관리**에 집중하였습니다.
-
-> 본 저장소는 **ERP 프론트엔드 포트폴리오 용도**로 제작되었습니다.
+React + TypeScript 기반의 ERP 프론트엔드 애플리케이션입니다.  
+사용자 인증(JWT)과 역할(Role) 기반 접근 제어를 포함하여, 주문 → 재고 → 생산 → 출고로 이어지는 업무 흐름을 UI로 구현한 프로젝트입니다.
 
 ---
 
-## 🏭 Main Dashboard (ERP · MES 통합 진입 화면)
+## 📌 프로젝트 개요
 
-ERP와 MES가 연계되는 **업무 흐름의 시작 지점**으로,  
-주문부터 출고까지 이어지는 전체 데이터 흐름을 시각적으로 표현한 메인 화면입니다.
-
-<a href="./public/img/main.png">
-  <img src="./public/img/main.png" style="max-width: 100%; height: auto;" />
-</a>
-
-- 주문 → 생산 → 출하 → 재고 흐름을 한 화면에서 인지 가능
-- ERP / MES / 주문 채널 간 역할 구분을 고려한 UI 구성
-- B2B 제조·유통 시스템 성격을 강조한 Hero 화면 설계
+- ERP 시스템의 핵심 화면 및 업무 흐름 UI 구현
+- JWT 기반 인증 처리 및 보호 라우팅 적용
+- 관리자(Admin) / 일반 사용자(User) 권한 분리
+- React Router 기반 SPA 구조 설계
 
 ---
 
-## 🔁 Order Management Business Process (ERP · MES 연계)
+## 🛠 주요 기능
 
-본 프로젝트는 **고객 주문 → 재고 확인 → 생산 → 출하 → 매출 확정**까지의  
-전체 업무 흐름을 ERP와 MES 관점에서 통합적으로 설계하였습니다.
-
-ERP는 **주문·재고·출하·매출 관리**를 담당하며,  
-MES는 **생산 지시·작업 진행·품질 검사** 흐름을 담당합니다.
-
-### 📊 Order Management Process Diagram
-<a href="./public/img/order-process.png">
-  <img src="./public/img/order-process.png" style="max-width: 100%; height: auto;" />
-</a>
-
-### 📌 프로세스 요약
-- 고객 주문 접수 및 재고 확인 (ERP)
-- 재고 부족 시 구매/생산 오더 자동 연계 (ERP → MES)
-- 생산 완료 후 품질 검사 및 재고 반영 (MES → ERP)
-- 출하, 배송, 납품 완료(POD) 후 매출 확정 (ERP)
+- 로그인 / 회원가입 페이지
+- 환영(Welcome) 페이지
+- ERP 메인 화면
+- 관리자(Admin) 페이지
+- 권한에 따른 메뉴 및 접근 제어
+- 로그아웃 기능 구현
+- 보호 라우트(RequireAuth / RequireAdmin)
 
 ---
 
-## 🔐 Authentication (Login & User Registration)
-
-JWT 기반 인증 흐름을 고려하여 설계한 시스템 진입 및 사용자 등록 화면입니다.  
-사용자 인증 상태 및 권한(Role)에 따라 접근 가능한 화면이 분기되도록 설계되었습니다.
-
-### Login
-<a href="./public/img/login.png">
-  <img src="./public/img/login.png" style="max-width: 100%; height: auto;" />
-</a>
-
-- JWT 기반 인증 흐름을 고려한 로그인 UI
-- 인증 정보는 LocalStorage 기반으로 관리
-- 인증 만료 및 권한 오류 발생 시 강제 로그아웃 처리 흐름 고려
-
-### User Registration (회원가입)
-<a href="./public/img/회원가입.png">
-  <img src="./public/img/회원가입.png" style="max-width: 100%; height: auto;" />
-</a>
-
-- ERP 사용자 등록을 위한 회원가입 화면
-- 회사명, 직급, 연락처 등 **업무 시스템 필수 정보 입력 구조**
-- **관리자 승인 후 계정 활성화** 방식 적용
-- B2B ERP 환경에 적합한 사용자 관리 프로세스 반영
-
----
-
-## 🛠 Tech Stack
+## 🧱 기술 스택
 
 ### Frontend
-- React 18
+- React
 - TypeScript
 - Vite
+- React Router DOM
 
-### UI / Styling
-- Styled-components
-- SCSS
+### Authentication
+- JWT 기반 인증 처리
+- LocalStorage 토큰 관리
+- Role 기반 접근 제어
 
-### Auth / Integration
-- JWT 기반 인증
-- Role 기반 라우팅 제어
-
----
-
-## 📁 Master Data Management (기준정보 관리)
-
-### 📦 Inventory Registration (재고 등록)
-<a href="./public/img/재고등록.png">
-  <img src="./public/img/재고등록.png" style="max-width: 100%; height: auto;" />
-</a>
-
-- 품목 코드 및 품목명 기반 재고 관리
-- 수량 × 단가 기반 재고 금액 자동 계산
-- ERP 재고 관리 기본 흐름을 고려한 화면 설계
+### Dev Tools
+- Git
+- GitHub
+- IntelliJ / VS Code
+- Postman (API 테스트)
 
 ---
 
-## 🔄 Transaction Management (거래 관리)
+## 📁 프로젝트 구조 (예시)
 
-### 🧾 Estimate Registration (견적서 입력)
-<a href="./public/img/견적서입력.png">
-  <img src="./public/img/견적서입력.png" style="max-width: 100%; height: auto;" />
-</a>
 
-- 거래처 기준 견적 데이터 등록
-- 다중 품목 입력 및 합계 금액 자동 계산
-- 실무 ERP 견적서 작성 흐름 반영
+src
+┣ pages
+┃ ┣ Welcome.tsx
+┃ ┣ Login.tsx
+┃ ┣ Signup.tsx
+┃ ┣ ERPHome.tsx
+┃ ┗ Admin.tsx
+┣ components
+┃ ┗ Header.tsx
+┣ auth
+┃ ┣ auth.ts
+┃ ┣ RequireAuth.tsx
+┃ ┗ RequireAdmin.tsx
+┗ App.tsx
 
-### 🧾 Estimate Management (견적서 관리)
-<a href="./public/img/견적서등록2.png">
-  <img src="./public/img/견적서등록2.png" style="max-width: 100%; height: auto;" />
-</a>
-
-- 기존 견적 데이터 수정 및 관리
-- 품목 단위 금액 변경 시 합계 자동 반영
-- ERP 견적 관리 화면 구조를 기준으로 UI 설계
-
-### 🧾 Sales Registration (판매 등록)
-<a href="./public/img/판매등록.png">
-  <img src="./public/img/판매등록.png" style="max-width: 100%; height: auto;" />
-</a>
-
-- 거래처 선택 후 판매 품목 다중 라인 입력
-- 수량 × 단가 기반 금액 자동 계산
-- 판매 합계 금액 실시간 반영
 
 ---
 
-## 📦 Order Management (오더 관리)
+## 🚀 실행 방법
 
-ERP/MES 환경에서 오더의 **진행 상태를 단계별로 관리**하기 위한 화면입니다.  
-발주부터 제작, 출고까지의 업무 흐름을 시스템 상에서 명확하게 추적할 수 있도록 설계되었습니다.
+### 1. 저장소 클론
+```bash
+git clone https://github.com/Nara-Park-513/erp-frontend.git
+cd erp-frontend
+2. 의존성 설치
+npm install
+3. 개발 서버 실행
+npm run dev
 
-### 오더 진행단계 등록
-<a href="./public/img/오더관리.png">
-  <img src="./public/img/오더관리.png" style="max-width: 100%; height: auto;" />
-</a>
+기본 접속 주소:
 
-- 오더관리번호 자동 생성
-- 발주완료 / 제작중 / 출고완료 상태 관리
-- ERP–MES 연계 오더 흐름 반영
+http://localhost:5173
+🔐 인증 흐름 요약
 
----
+로그인 성공 시 JWT 토큰 및 사용자 정보(LocalStorage 저장)
 
-## 📢 Notice Management (공지사항 관리)
+RequireAuth를 통해 로그인 여부 확인
 
-<a href="./public/img/공지사항.png">
-  <img src="./public/img/공지사항.png" style="max-width: 100%; height: auto;" />
-</a>
+RequireAdmin을 통해 관리자 권한 확인
 
-- 관리자 공지사항 등록 및 수정
-- 중요 공지 상단 고정 처리
-- 권한 기반 접근 제어
+로그아웃 시 토큰 제거 후 홈으로 이동
 
----
+🧠 설계 의도
 
-## 🗄 Database Snapshot (Estimate Structure)
+단순 화면 구현이 아닌 인증 및 권한 구조까지 포함한 ERP 프론트엔드 설계
 
-### 📄 Estimate (Header)
-<a href="./public/img/estimates_db.png">
-  <img src="./public/img/estimates_db.png" style="max-width: 100%; height: auto;" />
-</a>
+UI와 비즈니스 흐름을 연결하는 구조 설계
 
-### 📄 Estimate Lines (Detail)
-<a href="./public/img/estimate_lines_db.png">
-  <img src="./public/img/estimate_lines_db.png" style="max-width: 100%; height: auto;" />
-</a>
+관리자 전용 페이지 및 보호 라우팅 구현을 통해 실제 서비스 구조와 유사하게 구성
 
-- Header–Line(1:N) 구조 기반 견적 데이터 설계
-- 프론트엔드 다중 품목 입력 UI와 DB 구조 매핑
+📌 향후 개선 예정
 
----
+실제 백엔드 API 연동 고도화
 
-## 🚀 Key Features
-- ERP/MES 업무 흐름 기반 화면 설계
-- JWT 인증 및 권한 제어
-- 상태 기반 오더 관리
-- 실무 문서 구조 중심 UI/UX
+상태 관리 라이브러리 도입 (Redux / Zustand 등)
 
----
+공통 레이아웃 및 UI 컴포넌트 모듈화
 
-## 👨‍💻 Developer
+에러 핸들링 및 토큰 만료 처리 로직 개선
 
-**이기창**  
-ERP · MES 기반 웹 서비스 개발  
-React(TypeScript) · Spring Boot  
+📜 License
 
-업무 흐름을 이해하고  
-현업에서 바로 사용할 수 있는 시스템을 설계하는 개발자를 지향합니다.
+This project is for portfolio purposes.

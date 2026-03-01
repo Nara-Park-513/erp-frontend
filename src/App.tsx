@@ -48,6 +48,7 @@ import './assets/scss/style.scss';//리액트 에서는 sass컴파일 없이 사
 import EApprovalMyDocs from './16_mydocs/EApprovalMyDocs';
 import NoticeList from './17_notice/noticeList';
 import OrderProgress from './18_order/OrderProgress';
+import Welcome from './welcome';
 
 
 
@@ -68,6 +69,7 @@ function App() {
   </div>*/}
 
   <Routes>
+    <Route path="/" element={<Welcome />} />
     <Route path="/login" element={<Login/>}/>
     <Route path="/admin" element={<ProtectedRoute><Admin/></ProtectedRoute>}/>
     <Route path="/mypage" element={<ProtectedRoute><MyPage/></ProtectedRoute>}/>
