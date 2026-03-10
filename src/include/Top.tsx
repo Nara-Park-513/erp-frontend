@@ -37,12 +37,13 @@ const Top = () => {
 <NavLink to="/est">견적서입력</NavLink>
 <NavLink to="/inventory">구매조회</NavLink>
 <NavLink to="/profit">손익계산서</NavLink>
-<NavLink to="/sale">판매입력</NavLink>
-<NavLink to="/sale2">판매입력2</NavLink>
+<NavLink to="/sale">판매관리</NavLink>
+{/*<NavLink to="/sale2">판매입력2</NavLink>*/}
+<NavLink to="/material">자재관리</NavLink>
 <NavLink to="/stock">재고현황</NavLink>
-<NavLink to="/stockmove">재고변동표</NavLink>
+{/*<NavLink to="/stockmove">재고변동표</NavLink>*/}
 <NavLink to="/general">일반전표</NavLink>
-<NavLink to="/trade">판매조회</NavLink>
+{/*<NavLink to="/trade">판매조회</NavLink>*/}
 <NavLink to="/custom">거래처리스트</NavLink>
 
 <NavLink to="/mydocs">전자결재</NavLink>

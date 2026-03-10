@@ -322,7 +322,7 @@ export default function SalesInput() {
               <Right>
                 <TopWrap />
                 <JustifyContent>
-                  <TableTitle>판매입력</TableTitle>
+                  <TableTitle>판매관리</TableTitle>
                 </JustifyContent>
 
                 <Table hover>

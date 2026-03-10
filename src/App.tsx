@@ -37,6 +37,7 @@ import SalesInput from './10_sale/SalesInput';
 import SalesInput2 from './11_sale2/SalesInput2';
 import StockStatus from './12_stock/StockStatus';
 import StockMovement from './13_stockmove/StockMovement';
+import MaterialManagement from './19_material/MaterialManagement'
 //react나 vue에서 링크연결을 라우팅이라 합니다 npm install react-router-dom
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -88,7 +89,7 @@ function App() {
     <Route path="/about" element={<About/>}/>
     <Route path="/contact" element={<Contact/>}/>
     <Route path="/member" element={<Member/>}/>
-
+    <Route path="/material" element={<MaterialManagement/>}/>
     <Route path="/mydocs" element={<EApprovalMyDocs/>}/>
     <Route path="/notice" element={<NoticeList/>}/>
 <Route path="/order" element={<OrderProgress/>}/>
