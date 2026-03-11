@@ -37,7 +37,7 @@ margin:5px 0px 10px;
 export const Select = styled.select`
 border:1px solid #ccc;
 border-radius:5px;
-max-width:35%;
+max-width:45%;
 padding:10px 16px;
 margin:5px 0px 10px;
 font-size:16px;

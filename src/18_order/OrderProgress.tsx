@@ -3,16 +3,15 @@ import { useEffect, useState } from "react";
 import { Container, Row, Col, Table, Button } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
-import SideBar from "../include/SideBar";
+// import SideBar from "../include/SideBar";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
-import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
-import { BtnRight, MainSubmitBtn, WhiteBtn } from "../stylesjs/Button.styles";
-import Lnb from "../include/Lnb";
+import { BtnRight } from "../stylesjs/Button.styles";
+// import Lnb from "../include/Lnb";
 
 import OrderProgressModal from "../component/orders/OrderProgressModal";
 
-/** ✅ axios (동일 패턴) */
+/** axios */
 const api = axios.create({
   baseURL: "http://localhost:8888",
   timeout: 10000,
@@ -39,7 +38,6 @@ api.interceptors.response.use(
   }
 );
 
-/** ✅ 여기만 너 백엔드에 맞게 바꿔 */
 const API_LIST = "/api/orders/progress";
 
 type OrderProgressRow = {
@@ -53,9 +51,8 @@ export default function OrderProgress() {
   const [rows, setRows] = useState<OrderProgressRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  /** ✅ 모달 상태 */
   const [showModal, setShowModal] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null); // null이면 신규
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const fetchList = async () => {
     setLoading(true);
@@ -99,13 +96,11 @@ export default function OrderProgress() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** ✅ 보기(수정/삭제) */
   const openModalForEdit = (id: number) => {
     setSelectedId(id);
     setShowModal(true);
   };
 
-  /** ✅ 신규 */
   const openModalForNew = () => {
     setSelectedId(null);
     setShowModal(true);
@@ -116,102 +111,266 @@ export default function OrderProgress() {
     setSelectedId(null);
   };
 
-  const menuList = [{ key: "orders", label: "오더진행단계", path: "/orders/progress" }];
+  // const menuList = [{ key: "orders", label: "오더진행단계", path: "/orders/progress" }];
 
   return (
     <>
       <div className="fixed-top">
-        <Top />
         <Header />
+        <Top />
       </div>
-      <SideBar />
 
-      <Container fluid>
-        <Row>
-          <Col>
-            <Flex>
-              <Left>
-                <Lnb menuList={menuList} title="오더진행단계" />
-              </Left>
+      {/* <SideBar /> */}
 
-              <Right>
-                <TopWrap />
-                <JustifyContent>
-                  <TableTitle>오더관리진행단계</TableTitle>
-                </JustifyContent>
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          minHeight: "100vh",
+          paddingTop: "120px",
+        }}
+      >
+        <Container fluid>
+          <Row>
+            <Col>
+              <Flex>
+                <Left>
+                  {/* <Lnb menuList={menuList} title="오더진행단계" /> */}
+                </Left>
 
-                <div style={{ marginTop: 8, fontWeight: 700 }}>목록</div>
+                <Right style={{ marginTop: "-20px" }}>
+                  <TopWrap />
 
-                <div
-                  style={{
-                    marginTop: 8,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 10,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div style={{ maxHeight: 360, overflowY: "auto" }}>
-                    <Table bordered hover responsive style={{ marginBottom: 0 }}>
-                      <colgroup>
-                        <col style={{ width: "12%" }} />
-                        <col style={{ width: "18%" }} />
-                        <col style={{ width: "60%" }} />
-                        <col style={{ width: "10%" }} />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th>오더관리번호</th>
-                          <th>오더관리명</th>
-                          <th>진행단계</th>
-                          <th className="text-center">상세</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.length === 0 && (
-                          <tr>
-                            <td colSpan={4} className="text-center">
-                              {loading ? "불러오는 중..." : "데이터가 없습니다"}
-                            </td>
-                          </tr>
-                        )}
+                  <div
+                    style={{
+                      marginBottom: "14px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ lineHeight: 1.2 }}>
+                      <TableTitle
+                        style={{
+                          margin: 0,
+                          padding: 0,
+                          color: "#1f2937",
+                          fontWeight: 700,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        오더관리진행단계
+                      </TableTitle>
 
-                        {rows.map((r) => (
-                          <tr key={r.id}>
-                            <td>{r.orderNo}</td>
-                            <td>{r.orderName}</td>
-                            <td>{r.progressText || "-"}</td>
-                            <td className="text-center">
-                              <Button
-                                size="sm"
-                                variant="link"
-                                onClick={() => openModalForEdit(r.id)}
-                              >
-                                보기
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "14px",
+                          color: "#6b7280",
+                          fontWeight: 500,
+                        }}
+                      >
+                        목록
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <BtnRight style={{ marginTop: 12 }}>
-                  <WhiteBtn onClick={fetchList}>새로고침</WhiteBtn>
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e8ecf4",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+                    }}
+                  >
+                    <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+                      <Table responsive className="mb-0 align-middle">
+                        <thead>
+                          <tr
+                            style={{
+                              background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                            }}
+                          >
+                            <th
+                              style={{
+                                width: "12%",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                              }}
+                            >
+                              오더관리번호
+                            </th>
+                            <th
+                              style={{
+                                width: "18%",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                              }}
+                            >
+                              오더관리명
+                            </th>
+                            <th
+                              style={{
+                                width: "60%",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                              }}
+                            >
+                              진행단계
+                            </th>
+                            <th
+                              style={{
+                                width: "10%",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                                textAlign: "center",
+                              }}
+                            >
+                              상세
+                            </th>
+                          </tr>
+                        </thead>
 
-                  {/* ✅ 신규도 모달 */}
-                  <MainSubmitBtn onClick={openModalForNew}>신규</MainSubmitBtn>
-                </BtnRight>
-              </Right>
-            </Flex>
-          </Col>
-        </Row>
-      </Container>
+                        <tbody>
+                          {rows.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                style={{
+                                  textAlign: "center",
+                                  padding: "44px 16px",
+                                  color: "#98a2b3",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                {loading ? "불러오는 중..." : "데이터가 없습니다"}
+                              </td>
+                            </tr>
+                          ) : (
+                            rows.map((r, idx) => (
+                              <tr
+                                key={r.id}
+                                style={{
+                                  backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fcfdff",
+                                }}
+                              >
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    color: "#111827",
+                                    fontWeight: 600,
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {r.orderNo}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {r.orderName}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                    whiteSpace: "pre-line",
+                                  }}
+                                >
+                                  {r.progressText || "-"}
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "14px 18px",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  <Button
+                                    size="sm"
+                                    onClick={() => openModalForEdit(r.id)}
+                                    style={{
+                                      backgroundColor: "#ffffff",
+                                      color: "#475569",
+                                      border: "1px solid #dbe2ea",
+                                      borderRadius: "8px",
+                                      padding: "4px 10px",
+                                      fontSize: "12px",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    보기
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </Table>
+                    </div>
+                  </div>
 
-      {/* ✅ 신규/수정/삭제 모달 */}
+                  <BtnRight style={{ marginTop: "12px", gap: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={fetchList}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#475569",
+                        border: "1px solid #dbe2ea",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      새로고침
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={openModalForNew}
+                      style={{
+                        backgroundColor: "#6b7280",
+                        color: "#ffffff",
+                        border: "1px solid #6b7280",
+                        borderRadius: "10px",
+                        padding: "10px 18px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        boxShadow: "0 4px 10px rgba(107, 114, 128, 0.16)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      신규
+                    </button>
+                  </BtnRight>
+                </Right>
+              </Flex>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+
       <OrderProgressModal
         show={showModal}
-        id={selectedId} // null이면 신규
+        id={selectedId}
         onHide={closeModal}
         onChanged={fetchList}
       />

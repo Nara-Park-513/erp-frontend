@@ -18,6 +18,7 @@ const api = axios.create({
   baseURL: "http://localhost:8888",
   timeout: 10000,
 });
+
 api.interceptors.request.use((config) => {
   const token =
     localStorage.getItem("token") ||
@@ -30,6 +31,7 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -67,7 +69,7 @@ const Notice = () => {
         id: Number(r.id ?? r.noticeId ?? 0),
         title: String(r.title ?? r.subject ?? ""),
         content: String(r.content ?? ""),
-        writer: "관리자", // 강제
+        writer: "관리자",
         createdAt: r.createdAt
           ? new Date(String(r.createdAt)).toISOString().slice(0, 10)
           : new Date().toISOString().slice(0, 10),
@@ -100,73 +102,381 @@ const Notice = () => {
 
   return (
     <>
-      <div className="pay mt-5">
-        <div className="d-flex justify-content-between align-items-center">
-          <h4 className="fs-16-600-black">공지사항</h4>
-          <div className=""></div>
-        </div>
+      <div
+        style={{
+          //background: "linear-gradient(180deg, #f7f8fc 0%, #f3f5f9 100%)",
+          minHeight: "100%",
+          padding: "0",
+        }}
+      >
+        <div
+          className="pay mt-5"
+          style={{
+            backgroundColor: "transparent",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "14px",
+              display: "flex",
+              alignItems: "flex-start",
+            }}
+          >
+            <div style={{ lineHeight: 1.2 }}>
+              <h4
+                style={{
+                  margin: 0,
+                  padding: 0,
+                  color: "#1f2937",
+                  fontWeight: 700,
+                  fontSize: "24px",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                공지사항
+              </h4>
 
-        <h5 className="my-2 fs-14-400-gray">내 기안문서</h5>
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  fontWeight: 500,
+                }}
+              >
+                목록
+              </div>
+            </div>
+          </div>
 
-        <div className="table-wrap">
-          <Table variant="table-bordered" className="draft" responsive>
-            <thead>
-              <tr className="text-center">
-                <th>구분</th>
-                <th>제목</th>
-                <th>작성자</th>
-                <th>작성일</th>
-                <th>상세</th>
-                <th>조회</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* 데이터 없을 때 */}
-              {rows.length === 0 && (
-                <tr className="text-center">
-                  <td colSpan={6}>
-                    {loading ? "불러오는 중..." : "데이터가 없습니다"}
-                  </td>
-                </tr>
-              )}
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8ecf4",
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+            }}
+          >
+            <div
+              style={{
+                padding: "16px 18px 10px 18px",
+                borderBottom: "1px solid #eef2f7",
+                background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+                fontSize: "15px",
+                fontWeight: 700,
+                color: "#374151",
+              }}
+            >
+              공지 목록
+            </div>
 
-              {/* 서버 데이터 렌더 */}
-              {rows.map((r) => (
-                <tr key={r.id} className="text-center">
-                  <td>{r.isPinned ? "공지" : "-"}</td>
-                  <td style={{ whiteSpace: "pre-line", cursor: "pointer", fontWeight: r.isPinned ? 700 : 400 }} onClick={() => onView(r.id)}>
-                    {r.title}
-                  </td>
-                  <td>{r.writer}</td>
-                  <td>{r.createdAt}</td>
-                  <td style={{ cursor: "pointer", color: "#0d6efd" }} onClick={() => onView(r.id)}>
-                    보기
-                  </td>
-                  <td>{r.viewCount != null ? r.viewCount.toLocaleString() : "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+            <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+              <Table responsive className="mb-0 align-middle" style={{ marginBottom: 0 }}>
+                <thead>
+                  <tr
+                    style={{
+                      background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                    }}
+                  >
+                    <th
+                      style={{
+                        width: "90px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      구분
+                    </th>
+                    <th
+                      style={{
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                      }}
+                    >
+                      제목
+                    </th>
+                    <th
+                      style={{
+                        width: "140px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      작성자
+                    </th>
+                    <th
+                      style={{
+                        width: "160px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      작성일
+                    </th>
+                    <th
+                      style={{
+                        width: "90px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      상세
+                    </th>
+                    <th
+                      style={{
+                        width: "90px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "right",
+                      }}
+                    >
+                      조회
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        style={{
+                          textAlign: "center",
+                          padding: "44px 16px",
+                          color: "#98a2b3",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {loading ? "불러오는 중..." : "데이터가 없습니다"}
+                      </td>
+                    </tr>
+                  ) : (
+                    rows.map((r, idx) => (
+                      <tr
+                        key={r.id}
+                        style={{
+                          backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fcfdff",
+                        }}
+                      >
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            color: "#374151",
+                            borderBottom: "1px solid #eef2f7",
+                            fontWeight: r.isPinned ? 700 : 500,
+                          }}
+                        >
+                          {r.isPinned ? "공지" : "-"}
+                        </td>
+
+                        <td
+                          style={{
+                            padding: "14px 18px",
+                            borderBottom: "1px solid #eef2f7",
+                            whiteSpace: "pre-line",
+                          }}
+                        >
+                          <span
+                            style={{
+                              cursor: "pointer",
+                              color: "#111827",
+                              fontWeight: r.isPinned ? 700 : 500,
+                            }}
+                            onClick={() => onView(r.id)}
+                          >
+                            {r.title}
+                          </span>
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            color: "#374151",
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          {r.writer}
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            color: "#374151",
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          {r.createdAt}
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => onView(r.id)}
+                            style={{
+                              backgroundColor: "#ffffff",
+                              color: "#475569",
+                              border: "1px solid #dbe2ea",
+                              borderRadius: "8px",
+                              padding: "4px 10px",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            보기
+                          </button>
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "right",
+                            padding: "14px 18px",
+                            color: "#111827",
+                            fontWeight: 600,
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          {r.viewCount != null ? r.viewCount.toLocaleString() : "-"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: "12px",
+            }}
+          >
+            <button
+              type="button"
+              onClick={fetchList}
+              style={{
+                backgroundColor: "#ffffff",
+                color: "#475569",
+                border: "1px solid #dbe2ea",
+                borderRadius: "10px",
+                padding: "10px 14px",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              새로고침
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 읽기 전용 모달 */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{selected?.title}</Modal.Title>
+        <Modal.Header
+          closeButton
+          style={{
+            borderBottom: "1px solid #eef2f7",
+            background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+          }}
+        >
+          <Modal.Title
+            style={{
+              fontWeight: 700,
+              color: "#1f2937",
+            }}
+          >
+            {selected?.title}
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <p>
-            <strong>작성자:</strong> {selected?.writer}
-          </p>
-          <p>
-            <strong>작성일:</strong> {selected?.createdAt}
-          </p>
-          <hr />
-          <div style={{ whiteSpace: "pre-line" }}>{selected?.content}</div>
+
+        <Modal.Body
+          style={{
+            padding: "20px 22px",
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "10px",
+              marginBottom: "14px",
+              color: "#475569",
+              fontSize: "14px",
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              <strong style={{ color: "#111827" }}>작성자:</strong> {selected?.writer}
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong style={{ color: "#111827" }}>작성일:</strong> {selected?.createdAt}
+            </p>
+          </div>
+
+          <hr style={{ borderColor: "#eef2f7", margin: "0 0 14px 0" }} />
+
+          <div
+            style={{
+              whiteSpace: "pre-line",
+              color: "#374151",
+              lineHeight: 1.7,
+              minHeight: "120px",
+            }}
+          >
+            {selected?.content || "-"}
+          </div>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
+
+        <Modal.Footer
+          style={{
+            borderTop: "1px solid #eef2f7",
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <Button
+            onClick={() => setShowModal(false)}
+            style={{
+              backgroundColor: "#ffffff",
+              color: "#475569",
+              border: "1px solid #dbe2ea",
+              borderRadius: "10px",
+              padding: "8px 14px",
+              fontWeight: 600,
+            }}
+          >
             닫기
           </Button>
         </Modal.Footer>

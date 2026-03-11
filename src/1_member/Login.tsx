@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { Container } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -7,8 +7,20 @@ const Login = () => {
   // 초기화
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   const navigate = useNavigate();
+
+  // 페이지 로드 시 저장된 이메일 복원
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("savedEmail");
+    const savedRememberMe = localStorage.getItem("rememberMe");
+
+    if (savedRememberMe === "true" && savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,17 +37,17 @@ const Login = () => {
       });
 
       const myId =
-  res.data?.id ??
-  res.data?.memberId ??
-  res.data?.userId ??
-  res.data?.member?.id ??
-  res.data?.user?.id;
+        res.data?.id ??
+        res.data?.memberId ??
+        res.data?.userId ??
+        res.data?.member?.id ??
+        res.data?.user?.id;
 
-if (myId) {
-  localStorage.setItem("memberId", String(myId));
-}
+      if (myId) {
+        localStorage.setItem("memberId", String(myId));
+      }
 
-      // ✅ 여기서 백엔드가 토큰을 내려준다고 가정: res.data.token
+      // 백엔드가 token 내려준다고 가정
       const token = res.data?.token;
 
       if (!token) {
@@ -44,12 +56,21 @@ if (myId) {
         return;
       }
 
-      // ✅ 1) 토큰 저장 (ProtectedRoute가 읽는 키 = "token" 맞춰야 함)
+      // 토큰 저장
       localStorage.setItem("token", token);
+
+      // Remember Me 처리
+      if (rememberMe) {
+        localStorage.setItem("savedEmail", email);
+        localStorage.setItem("rememberMe", "true");
+      } else {
+        localStorage.removeItem("savedEmail");
+        localStorage.removeItem("rememberMe");
+      }
 
       alert("로그인 성공");
 
-      // ✅ 2) window.location.href 말고 SPA 라우팅으로 이동
+      // SPA 라우팅으로 이동
       navigate("/admin", { replace: true });
     } catch (err) {
       console.error(err);
@@ -102,6 +123,8 @@ if (myId) {
                               type="checkbox"
                               className="custom-control-input mx-2"
                               id="customCheck"
+                              checked={rememberMe}
+                              onChange={(e) => setRememberMe(e.target.checked)}
                             />
                             <label className="custom-control-label" htmlFor="customCheck">
                               Remember Me

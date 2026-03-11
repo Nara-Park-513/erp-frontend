@@ -3,14 +3,18 @@ import { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Table } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
-import SideBar from "../include/SideBar";
+// import SideBar from "../include/SideBar";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
-import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
-import { MainSubmitBtn, BtnRight } from "../stylesjs/Button.styles";
-import Lnb from "../include/Lnb";
+import { BtnRight } from "../stylesjs/Button.styles";
+// import Lnb from "../include/Lnb";
 
-import SalesModal, { Sales, SalesLine, Customer } from "../component/sales/SalesModal";
+import SalesModal, {
+  Sales,
+  SalesLine,
+  Customer,
+  ItemOption,
+} from "../component/sales/SalesModal";
 
 const api = axios.create({
   baseURL: "http://localhost:8888",
@@ -51,6 +55,7 @@ const emptySales = (): Sales => ({
 
 export default function SalesInput() {
   const [customerList, setCustomerList] = useState<Customer[]>([]);
+  const [itemList, setItemList] = useState<ItemOption[]>([]);
   const [show, setShow] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -105,6 +110,27 @@ export default function SalesInput() {
     }
   };
 
+  const fetchItems = async () => {
+    try {
+      const res = await api.get("/api/inv/items", {
+        params: { page: 0, size: 2000, includeStopped: true },
+      });
+
+      const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
+
+      const normalized: ItemOption[] = rows.map((it: any) => ({
+        id: Number(it.id ?? it.itemId ?? 0),
+        itemName: String(it.itemName ?? ""),
+        outPrice: Number(it.outPrice ?? it.unitPrice ?? 0),
+      }));
+
+      setItemList(normalized);
+    } catch (e) {
+      console.error("품목 목록 조회 실패", e);
+      setItemList([]);
+    }
+  };
+
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
@@ -118,17 +144,12 @@ export default function SalesInput() {
         const filtered = normalized.filter((c) => c.id && c.customerName);
         setCustomerList(filtered);
 
-        fetchSales(filtered);
+        await Promise.all([fetchSales(filtered), fetchItems()]);
       } catch (e) {
         console.error("거래처 목록 조회 실패", e);
       }
     };
     fetchCustomers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    fetchSales();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -147,7 +168,10 @@ export default function SalesInput() {
   const addLine = () => {
     setSales((p) => ({
       ...p,
-      lines: [...(p.lines || []), { itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
+      lines: [
+        ...(p.lines || []),
+        { itemId: null, itemName: "", qty: 1, price: 0, amount: 0 },
+      ],
     }));
   };
 
@@ -178,20 +202,26 @@ export default function SalesInput() {
         t.itemList ??
         [];
 
-      const lines: SalesLine[] = (Array.isArray(rawLines) ? rawLines : []).map((l: any) => {
-        const qty = Number(l.qty ?? l.quantity ?? l.q ?? 0);
-        const unitPrice = Number(l.unitPrice ?? l.price ?? l.unit_price ?? 0);
-        const amount = Number(l.totalAmount ?? l.amount ?? l.lineAmount ?? qty * unitPrice);
+      const lines: SalesLine[] = (Array.isArray(rawLines) ? rawLines : []).map(
+        (l: any) => {
+          const qty = Number(l.qty ?? l.quantity ?? l.q ?? 0);
+          const unitPrice = Number(l.unitPrice ?? l.price ?? l.unit_price ?? 0);
+          const amount = Number(
+            l.totalAmount ?? l.amount ?? l.lineAmount ?? qty * unitPrice
+          );
 
-        return {
-          itemId: l.itemId ?? l.item?.id ?? l.item?.itemId ?? null,
-          itemName: String(l.itemName ?? l.item?.itemName ?? l.item?.name ?? l.name ?? ""),
-          qty,
-          price: unitPrice,
-          amount,
-          remark: l.remark ?? l.lineRemark ?? "",
-        };
-      });
+          return {
+            itemId: l.itemId ?? l.item?.id ?? l.item?.itemId ?? null,
+            itemName: String(
+              l.itemName ?? l.item?.itemName ?? l.item?.name ?? l.name ?? ""
+            ),
+            qty,
+            price: unitPrice,
+            amount,
+            remark: l.remark ?? l.lineRemark ?? "",
+          };
+        }
+      );
 
       const cname =
         (t.customerName ?? "").trim() ||
@@ -207,7 +237,10 @@ export default function SalesInput() {
         customerName: cname,
         remark: t.remark ?? "",
         totalAmount: Number(t.totalAmount ?? 0),
-        lines: lines.length > 0 ? lines : [{ itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
+        lines:
+          lines.length > 0
+            ? lines
+            : [{ itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
       });
 
       setShow(true);
@@ -225,7 +258,9 @@ export default function SalesInput() {
   const saveSales = async () => {
     try {
       if (!sales.salesDate) return alert("판매일자를 입력하세요");
-      if (!sales.lines || sales.lines.length === 0) return alert("판매 라인을 1개 이상 입력하세요");
+      if (!sales.lines || sales.lines.length === 0) {
+        return alert("판매 라인을 1개 이상 입력하세요");
+      }
 
       const customerId = sales.customerId;
       if (!customerId) return alert("거래처를 목록에서 선택해 주세요(customerId 필요)");
@@ -233,8 +268,12 @@ export default function SalesInput() {
       for (const [i, l] of sales.lines.entries()) {
         if (!l.itemId) return alert(`라인 ${i + 1}: 품목을 선택하세요(itemId 필요)`);
         if (!l.itemName?.trim()) return alert(`라인 ${i + 1}: 품목명을 입력하세요`);
-        if (!(Number(l.qty) > 0)) return alert(`라인 ${i + 1}: 수량은 0보다 커야 합니다.`);
-        if (!(Number(l.price) >= 0)) return alert(`라인 ${i + 1}: 단가는 0 이상이어야 합니다.`);
+        if (!(Number(l.qty) > 0)) {
+          return alert(`라인 ${i + 1}: 수량은 0보다 커야 합니다.`);
+        }
+        if (!(Number(l.price) >= 0)) {
+          return alert(`라인 ${i + 1}: 단가는 0 이상이어야 합니다.`);
+        }
       }
 
       const tradeNo =
@@ -301,65 +340,236 @@ export default function SalesInput() {
     }
   };
 
-  const stockMenu = [{ key: "status", label: "판매입력", path: "/sale" }];
-
   return (
     <>
       <div className="fixed-top">
-        <Top />
         <Header />
+        <Top />
       </div>
-      <SideBar />
 
-      <Container fluid>
-        <Row>
-          <Col>
-            <Flex>
-              <Left>
-                <Lnb menuList={stockMenu} title="판매입력" />
-              </Left>
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          minHeight: "100vh",
+          paddingTop: "120px",
+        }}
+      >
+        <Container fluid>
+          <Row>
+            <Col>
+              <Flex>
+                <Left></Left>
 
-              <Right>
-                <TopWrap />
-                <JustifyContent>
-                  <TableTitle>판매관리</TableTitle>
-                </JustifyContent>
+                <Right style={{ marginTop: "-20px" }}>
+                  <TopWrap />
 
-                <Table hover>
-                  <thead>
-                    <tr>
-                      <th>판매번호</th>
-                      <th>판매일자</th>
-                      <th>거래처</th>
-                      <th className="text-end">합계금액</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salesList.map((s) => (
-                      <tr
-                        key={s.id}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => openDetail(s.id!)}
+                  <div
+                    style={{
+                      marginBottom: "14px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ lineHeight: 1.2 }}>
+                      <TableTitle
+                        style={{
+                          margin: 0,
+                          padding: 0,
+                          color: "#1f2937",
+                          fontWeight: 700,
+                          letterSpacing: "-0.02em",
+                        }}
                       >
-                        <td>{s.salesNo}</td>
-                        <td>{String(s.salesDate ?? "").slice(0, 10)}</td>
-                        <td>{s.customerName}</td>
-                        <td className="text-end">
-                          {Number(s.totalAmount ?? 0).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                        판매관리
+                      </TableTitle>
 
-                <BtnRight>
-                  <MainSubmitBtn onClick={openNew}>신규</MainSubmitBtn>
-                </BtnRight>
-              </Right>
-            </Flex>
-          </Col>
-        </Row>
-      </Container>
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "14px",
+                          color: "#6b7280",
+                          fontWeight: 500,
+                        }}
+                      >
+                        목록
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e8ecf4",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+                    }}
+                  >
+                    <Table responsive className="mb-0 align-middle">
+                      <thead>
+                        <tr
+                          style={{
+                            background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                          }}
+                        >
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            판매번호
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            판매일자
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            거래처
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                              textAlign: "right",
+                            }}
+                          >
+                            합계금액
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {salesList.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              style={{
+                                textAlign: "center",
+                                padding: "44px 16px",
+                                color: "#98a2b3",
+                                fontSize: "14px",
+                              }}
+                            >
+                              등록된 판매 내역이 없습니다.
+                            </td>
+                          </tr>
+                        ) : (
+                          salesList.map((s, index) => (
+                            <tr
+                              key={s.id}
+                              style={{
+                                cursor: "pointer",
+                                backgroundColor: index % 2 === 0 ? "#ffffff" : "#fcfdff",
+                                transition: "all 0.15s ease",
+                              }}
+                              onClick={() => openDetail(s.id!)}
+                            >
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#111827",
+                                  fontWeight: 600,
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {s.salesNo}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {String(s.salesDate ?? "").slice(0, 10)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {s.customerName}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  textAlign: "right",
+                                  color: "#111827",
+                                  fontWeight: 700,
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {Number(s.totalAmount ?? 0).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+
+                  <BtnRight style={{ marginTop: "14px" }}>
+                    <button
+                      type="button"
+                      onClick={openNew}
+                      style={{
+                        backgroundColor: "#6b7280",
+                        color: "#ffffff",
+                        border: "1px solid #6b7280",
+                        borderRadius: "10px",
+                        padding: "10px 18px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        boxShadow: "0 4px 10px rgba(107, 114, 128, 0.16)",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#5b6472";
+                        e.currentTarget.style.borderColor = "#5b6472";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#6b7280";
+                        e.currentTarget.style.borderColor = "#6b7280";
+                      }}
+                    >
+                      신규
+                    </button>
+                  </BtnRight>
+                </Right>
+              </Flex>
+            </Col>
+          </Row>
+        </Container>
+      </div>
 
       <SalesModal
         show={show}
@@ -374,6 +584,7 @@ export default function SalesInput() {
         onSave={saveSales}
         onDelete={deleteSales}
         customerList={customerList}
+        itemList={itemList}
       />
     </>
   );

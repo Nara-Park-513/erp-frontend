@@ -22,6 +22,22 @@ type Props = {
   onDelete: () => void;
 };
 
+const inputStyle = {
+  height: "44px",
+  borderRadius: "12px",
+  borderColor: "#dbe2ea",
+  boxShadow: "none",
+  width: "545px",
+};
+
+const textAreaStyle = {
+  borderRadius: "12px",
+  borderColor: "#dbe2ea",
+  boxShadow: "none",
+  resize: "none" as const,
+  width:"545px",
+};
+
 export default function ApprovalModal({
   show,
   selectedId,
@@ -32,104 +48,214 @@ export default function ApprovalModal({
   onDelete,
 }: Props) {
   return (
-    <Modal show={show} onHide={onClose} size="lg" centered>
-      <Modal.Header closeButton>
-        <Modal.Title>기안 {selectedId ? "수정" : "작성"}</Modal.Title>
+    <Modal
+      show={show}
+      onHide={onClose}
+      size="lg"
+      centered
+      contentClassName="border-0 shadow-lg"
+    >
+      <Modal.Header
+        closeButton
+        style={{
+          padding: "20px 24px",
+          borderBottom: "1px solid #eef2f7",
+          background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+        }}
+      >
+        <Modal.Title
+          style={{
+            fontWeight: 800,
+            color: "#1f2937",
+            fontSize: "28px",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          기안 {selectedId ? "수정" : "작성"}
+        </Modal.Title>
       </Modal.Header>
 
-      <Modal.Body>
-        <RoundRect>
-          <InputGroup>
-            <W30>
-              <MidLabel>기안일자</MidLabel>
-            </W30>
-            <W70>
-              <Form.Control
-                type="date"
-                value={doc.draftDate}
-                onChange={(e) => onSetDoc((p) => ({ ...p, draftDate: e.target.value }))}
-              />
-            </W70>
-          </InputGroup>
+      <Modal.Body
+        style={{
+          backgroundColor: "#f8fafc",
+          padding: "24px",
+        }}
+      >
+        <RoundRect
+          style={{
+            width: "100%",
+            backgroundColor: "#ffffff",
+            border: "1px solid #e8ecf4",
+            borderRadius: "20px",
+            padding: "24px",
+            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "16px",
+            }}
+          >
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                  기안일자
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  type="date"
+                  value={doc.draftDate}
+                  onChange={(e) =>
+                    onSetDoc((p) => ({ ...p, draftDate: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
 
-          <InputGroup className="my-3">
-            <W30>
-              <MidLabel>제목</MidLabel>
-            </W30>
-            <W70>
-              <Form.Control
-                value={doc.title}
-                onChange={(e) => onSetDoc((p) => ({ ...p, title: e.target.value }))}
-              />
-            </W70>
-          </InputGroup>
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                  제목
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  value={doc.title}
+                  onChange={(e) =>
+                    onSetDoc((p) => ({ ...p, title: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
 
-          <InputGroup className="my-3">
-            <W30>
-              <MidLabel>기안자</MidLabel>
-            </W30>
-            <W70>
-              <Form.Control
-                value={doc.drafter}
-                onChange={(e) => onSetDoc((p) => ({ ...p, drafter: e.target.value }))}
-              />
-            </W70>
-          </InputGroup>
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                  기안자
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  value={doc.drafter}
+                  onChange={(e) =>
+                    onSetDoc((p) => ({ ...p, drafter: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
 
-          <InputGroup className="my-3">
-            <W30>
-              <MidLabel>결재자</MidLabel>
-            </W30>
-            <W70>
-              <Form.Control
-                value={doc.approver}
-                onChange={(e) => onSetDoc((p) => ({ ...p, approver: e.target.value }))}
-              />
-            </W70>
-          </InputGroup>
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                  결재자
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  value={doc.approver}
+                  onChange={(e) =>
+                    onSetDoc((p) => ({ ...p, approver: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
 
-          <InputGroup className="my-3">
-            <W30>
-              <MidLabel>진행상태</MidLabel>
-            </W30>
-            <W70>
-              <Form.Select
-                value={doc.progressStatus}
-                onChange={(e) => onSetDoc((p) => ({ ...p, progressStatus: e.target.value }))}
-              >
-                <option value="진행중">진행중</option>
-                <option value="반려">반려</option>
-                <option value="완료">완료</option>
-              </Form.Select>
-            </W70>
-          </InputGroup>
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                  진행상태
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Select
+                  value={doc.progressStatus}
+                  onChange={(e) =>
+                    onSetDoc((p) => ({ ...p, progressStatus: e.target.value }))
+                  }
+                  style={inputStyle}
+                >
+                  <option value="진행중">진행중</option>
+                  <option value="반려">반려</option>
+                  <option value="완료">완료</option>
+                </Form.Select>
+              </W70>
+            </InputGroup>
 
-          <InputGroup className="my-3">
-            <W30>
-              <MidLabel>내용</MidLabel>
-            </W30>
-            <W70>
-              <Form.Control
-                as="textarea"
-                rows={6}
-                value={doc.content}
-                onChange={(e) => onSetDoc((p) => ({ ...p, content: e.target.value }))}
-              />
-            </W70>
-          </InputGroup>
+            <InputGroup style={{ alignItems: "flex-start", margin: 0 }}>
+              <W30>
+                <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                  내용
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  as="textarea"
+                  rows={8}
+                  value={doc.content}
+                  onChange={(e) =>
+                    onSetDoc((p) => ({ ...p, content: e.target.value }))
+                  }
+                  style={textAreaStyle}
+                />
+              </W70>
+            </InputGroup>
+          </div>
         </RoundRect>
       </Modal.Body>
 
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onClose}>
+      <Modal.Footer
+        style={{
+          padding: "18px 24px",
+          borderTop: "1px solid #eef2f7",
+          backgroundColor: "#ffffff",
+          gap: "10px",
+        }}
+      >
+        <Button
+          onClick={onClose}
+          style={{
+            backgroundColor: "#ffffff",
+            color: "#475569",
+            border: "1px solid #dbe2ea",
+            borderRadius: "10px",
+            padding: "10px 16px",
+            fontWeight: 700,
+          }}
+        >
           닫기
         </Button>
+
         {selectedId && (
-          <Button variant="danger" onClick={onDelete}>
+          <Button
+            onClick={onDelete}
+            style={{
+              backgroundColor: "#ef4444",
+              borderColor: "#ef4444",
+              borderRadius: "10px",
+              padding: "10px 16px",
+              fontWeight: 700,
+            }}
+          >
             삭제
           </Button>
         )}
-        <Button variant="primary" onClick={onSave}>
+
+        <Button
+          onClick={onSave}
+          style={{
+            backgroundColor: "#6b7280",
+            borderColor: "#6b7280",
+            borderRadius: "10px",
+            padding: "10px 18px",
+            fontWeight: 700,
+          }}
+        >
           {selectedId ? "수정" : "저장"}
         </Button>
       </Modal.Footer>

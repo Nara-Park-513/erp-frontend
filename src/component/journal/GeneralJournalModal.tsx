@@ -1,16 +1,10 @@
-
 import { Modal, Button, Form, Row, Col, Table } from "react-bootstrap";
 
-/* =========================
-   ✅ GeneralJournal.tsx와 맞춘 타입
-   (GeneralJournal.tsx에서 import 하는 Journal/JournalLine을 여기서 export)
-========================= */
 export type JournalLine = {
   accountCode: string;
   dcType: "DEBIT" | "CREDIT";
   amount: number;
   lineRemark?: string;
-  // 서버가 내려줄 수도 있는 값들 (있어도 되고 없어도 됨)
   accountName?: string | null;
 };
 
@@ -24,9 +18,6 @@ export type Journal = {
   lines: JournalLine[];
 };
 
-/* =========================
-   ✅ GeneralJournal.tsx가 넘기는 Props와 "완전히 동일"하게
-========================= */
 type Props = {
   show: boolean;
   selectedId: number | null;
@@ -34,7 +25,7 @@ type Props = {
   totals: { debitTotal: number; creditTotal: number };
 
   onClose: () => void;
-  onSetJournal: (j: any) => void; // ✅ setState 그대로 받으려고 any 처리(타입 충돌 방지)
+  onSetJournal: (updater: any) => void;
 
   addLine: () => void;
   removeLine: (idx: number) => void;
@@ -46,17 +37,11 @@ type Props = {
   customerList: any[];
 };
 
-/* =========================
-   ✅ 계정과목 데이터가 없으니 프론트 임시 목록
-   - 선택하면 accountCode가 자동 입력됨
-========================= */
 const ACCOUNTS = [
   { code: "1010", name: "현금" },
   { code: "1020", name: "보통예금" },
   { code: "1030", name: "당좌예금" },
   { code: "2110", name: "지급어음" },
-
-  // 손익(분류 코드 prefix)
   { code: "41", name: "매출(41)" },
   { code: "51", name: "매출원가(51)" },
   { code: "52", name: "판매관리비(52)" },
@@ -65,6 +50,20 @@ const ACCOUNTS = [
 ];
 
 const n = (v: any) => Number(v ?? 0) || 0;
+
+const inputStyle = {
+  height: "44px",
+  borderRadius: "12px",
+  borderColor: "#dbe2ea",
+  boxShadow: "none",
+};
+
+const selectStyle = {
+  height: "44px",
+  borderRadius: "12px",
+  borderColor: "#dbe2ea",
+  boxShadow: "none",
+};
 
 export default function GeneralJournalModal({
   show,
@@ -80,185 +79,483 @@ export default function GeneralJournalModal({
   onDelete,
   customerList,
 }: Props) {
-  // ✅ 헤더 변경 helper
   const patchHeader = (patch: Partial<Journal>) => {
     onSetJournal((prev: Journal) => ({ ...prev, ...patch }));
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered size="xl" backdrop="static">
-      <Modal.Header closeButton>
-        <Modal.Title>{selectedId ? "전표 수정" : "전표 등록"}</Modal.Title>
+    <Modal
+      show={show}
+      onHide={onClose}
+      centered
+      size="xl"
+      backdrop="static"
+      contentClassName="border-0 shadow-lg"
+    >
+      <Modal.Header
+        closeButton
+        style={{
+          padding: "20px 24px",
+          borderBottom: "1px solid #eef2f7",
+          background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+        }}
+      >
+        <Modal.Title
+          style={{
+            fontWeight: 800,
+            color: "#1f2937",
+            fontSize: "28px",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {selectedId ? "전표 수정" : "전표 등록"}
+        </Modal.Title>
       </Modal.Header>
 
-      <Modal.Body>
-        {/* ===== 헤더 ===== */}
-        <Row className="g-3 mb-3">
-          <Col md={3}>
-            <Form.Label>전표일자</Form.Label>
-            <Form.Control
-              type="date"
-              value={journal.journalDate ?? ""}
-              onChange={(e) => patchHeader({ journalDate: e.target.value })}
-            />
-          </Col>
+      <Modal.Body
+        style={{
+          backgroundColor: "#f8fafc",
+          padding: "24px",
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            border: "1px solid #e8ecf4",
+            borderRadius: "20px",
+            padding: "24px",
+            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
+          }}
+        >
+          <Row className="g-4" style={{ marginBottom: "22px" }}>
+            <Col md={3}>
+              <Form.Label
+                style={{
+                  fontWeight: 700,
+                  color: "#475467",
+                  marginBottom: "8px",
+                }}
+              >
+                전표일자
+              </Form.Label>
+              <Form.Control
+                type="date"
+                value={journal.journalDate ?? ""}
+                onChange={(e) => patchHeader({ journalDate: e.target.value })}
+                style={inputStyle}
+              />
+            </Col>
 
-          <Col md={3}>
-            <Form.Label>전표번호(선택)</Form.Label>
-            <Form.Control
-              value={journal.journalNo ?? ""}
-              onChange={(e) => patchHeader({ journalNo: e.target.value })}
-              placeholder="자동채번이면 비워도 됨"
-            />
-          </Col>
+            <Col md={3}>
+              <Form.Label
+                style={{
+                  fontWeight: 700,
+                  color: "#475467",
+                  marginBottom: "8px",
+                }}
+              >
+                전표번호(선택)
+              </Form.Label>
+              <Form.Control
+                value={journal.journalNo ?? ""}
+                onChange={(e) => patchHeader({ journalNo: e.target.value })}
+                placeholder="자동채번이면 비워도 됨"
+                style={inputStyle}
+              />
+            </Col>
 
-          <Col md={3}>
-            <Form.Label>거래처</Form.Label>
-            <Form.Select
-              value={journal.customerName ?? ""}
-              onChange={(e) => patchHeader({ customerName: e.target.value })}
-            >
-              <option value="">거래처 선택</option>
-              {customerList.map((c: any) => (
-                <option
-                  key={c.id ?? c.customerId}
-                  value={c.customerName ?? c.name ?? ""}
+            <Col md={3}>
+              <Form.Label
+                style={{
+                  fontWeight: 700,
+                  color: "#475467",
+                  marginBottom: "8px",
+                }}
+              >
+                거래처
+              </Form.Label>
+              <Form.Select
+                value={journal.customerId ?? ""}
+                onChange={(e) => {
+                  const selectedId = e.target.value ? Number(e.target.value) : null;
+                  const selectedCustomer =
+                    customerList.find(
+                      (c: any) => Number(c.id ?? c.customerId) === selectedId
+                    ) ?? null;
+
+                  patchHeader({
+                    customerId: selectedId,
+                    customerName:
+                      selectedCustomer?.customerName ?? selectedCustomer?.name ?? "",
+                  });
+                }}
+                style={selectStyle}
+              >
+                <option value="">거래처 선택</option>
+                {customerList.map((c: any) => {
+                  const id = c.id ?? c.customerId;
+                  const name = c.customerName ?? c.name ?? "";
+                  return (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </Form.Select>
+            </Col>
+
+            <Col md={3}>
+              <Form.Label
+                style={{
+                  fontWeight: 700,
+                  color: "#475467",
+                  marginBottom: "8px",
+                }}
+              >
+                적요
+              </Form.Label>
+              <Form.Control
+                value={journal.remark ?? ""}
+                onChange={(e) => patchHeader({ remark: e.target.value })}
+                placeholder="메모"
+                style={inputStyle}
+              />
+            </Col>
+          </Row>
+
+          <div
+            style={{
+              marginBottom: "14px",
+              paddingTop: "18px",
+              borderTop: "1px solid #eef2f7",
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "#374151",
+            }}
+          >
+            전표 라인
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #e8ecf4",
+              borderRadius: "16px",
+              overflow: "hidden",
+              backgroundColor: "#ffffff",
+            }}
+          >
+            <div style={{ overflowX: "auto" }}>
+              <Table
+                bordered
+                hover
+                responsive
+                className="mb-0 align-middle"
+                style={{
+                  width: "100%",
+                  marginBottom: 0,
+                  background: "white",
+                  borderColor: "#e8ecf4",
+                }}
+              >
+                <thead
+                  style={{
+                    background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                  }}
                 >
-                  {c.customerName ?? c.name ?? "-"}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
+                  <tr>
+                    <th
+                      style={{
+                        width: 60,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        textAlign: "center",
+                      }}
+                    >
+                      #
+                    </th>
+                    <th
+                      style={{
+                        width: 300,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                      }}
+                    >
+                      계정
+                    </th>
+                    <th
+                      style={{
+                        width: 160,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                      }}
+                    >
+                      차/대
+                    </th>
+                    <th
+                      style={{
+                        width: 200,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        textAlign: "right",
+                      }}
+                    >
+                      금액
+                    </th>
+                    <th
+                      style={{
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                      }}
+                    >
+                      적요
+                    </th>
+                    <th
+                      style={{
+                        width: 90,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        textAlign: "center",
+                      }}
+                    >
+                      삭제
+                    </th>
+                  </tr>
+                </thead>
 
-          <Col md={3}>
-            <Form.Label>적요</Form.Label>
-            <Form.Control
-              value={journal.remark ?? ""}
-              onChange={(e) => patchHeader({ remark: e.target.value })}
-              placeholder="메모"
-            />
-          </Col>
-        </Row>
+                <tbody>
+                  {(journal.lines || []).map((l, idx) => (
+                    <tr key={idx}>
+                      <td
+                        className="text-center"
+                        style={{
+                          verticalAlign: "middle",
+                          padding: "10px 12px",
+                          fontWeight: 600,
+                          color: "#475467",
+                        }}
+                      >
+                        {idx + 1}
+                      </td>
 
-        {/* ===== 라인 ===== */}
-        <Table bordered hover responsive>
-          <thead>
-            <tr>
-              <th style={{ width: 60 }}>#</th>
-              <th style={{ width: 300 }}>계정</th>
-              <th style={{ width: 160 }}>차/대</th>
-              <th style={{ width: 200 }} className="text-end">
-                금액
-              </th>
-              <th>적요</th>
-              <th style={{ width: 90 }}>삭제</th>
-            </tr>
-          </thead>
+                      <td style={{ padding: "10px" }}>
+                        <Form.Select
+                          value={l.accountCode ?? ""}
+                          onChange={(e) =>
+                            updateLine(idx, {
+                              accountCode: e.target.value,
+                              accountName:
+                                ACCOUNTS.find((a) => a.code === e.target.value)?.name ?? "",
+                            })
+                          }
+                          style={{
+                            ...selectStyle,
+                            height: "42px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          <option value="">계정 선택</option>
+                          {ACCOUNTS.map((a) => (
+                            <option key={a.code} value={a.code}>
+                              {a.code} - {a.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </td>
 
-          <tbody>
-            {(journal.lines || []).map((l, idx) => (
-              <tr key={idx}>
-                <td className="text-center">{idx + 1}</td>
+                      <td style={{ padding: "10px" }}>
+                        <Form.Select
+                          value={l.dcType}
+                          onChange={(e) =>
+                            updateLine(idx, {
+                              dcType: e.target.value as "DEBIT" | "CREDIT",
+                            })
+                          }
+                          style={{
+                            ...selectStyle,
+                            height: "42px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          <option value="DEBIT">차변(DEBIT)</option>
+                          <option value="CREDIT">대변(CREDIT)</option>
+                        </Form.Select>
+                      </td>
 
-                <td>
-                  {/* ✅ 드롭다운 선택으로 accountCode 자동 입력 */}
-                  <Form.Select
-                    value={l.accountCode ?? ""}
-                    onChange={(e) =>
-                      updateLine(idx, {
-                        accountCode: e.target.value,
-                        accountName:
-                          ACCOUNTS.find((a) => a.code === e.target.value)
-                            ?.name ?? null,
-                      })
-                    }
+                      <td
+                        className="text-end"
+                        style={{
+                          verticalAlign: "middle",
+                          padding: "10px",
+                        }}
+                      >
+                        <Form.Control
+                          type="number"
+                          min={0}
+                          value={n(l.amount)}
+                          onChange={(e) => updateLine(idx, { amount: n(e.target.value) })}
+                          style={{
+                            ...inputStyle,
+                            height: "42px",
+                            borderRadius: "10px",
+                            textAlign: "right",
+                          }}
+                        />
+                      </td>
+
+                      <td style={{ padding: "10px" }}>
+                        <Form.Control
+                          value={l.lineRemark ?? ""}
+                          onChange={(e) =>
+                            updateLine(idx, { lineRemark: e.target.value })
+                          }
+                          placeholder="라인 적요"
+                          style={{
+                            ...inputStyle,
+                            height: "42px",
+                            borderRadius: "10px",
+                          }}
+                        />
+                      </td>
+
+                      <td
+                        className="text-center"
+                        style={{
+                          verticalAlign: "middle",
+                          padding: "10px",
+                        }}
+                      >
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => removeLine(idx)}
+                          style={{
+                            borderRadius: "10px",
+                            padding: "8px 12px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          삭제
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+
+                <tfoot>
+                  <tr
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      fontWeight: 700,
+                    }}
                   >
-                    <option value="">계정 선택</option>
-                    {ACCOUNTS.map((a) => (
-                      <option key={a.code} value={a.code}>
-                        {a.code} - {a.name}
-                      </option>
-                    ))}
-                  </Form.Select>
+                    <td
+                      colSpan={3}
+                      className="text-end"
+                      style={{
+                        padding: "14px 16px",
+                        color: "#475467",
+                      }}
+                    >
+                      합계
+                    </td>
+                    <td
+                      className="text-end"
+                      style={{
+                        padding: "14px 16px",
+                        color: "#111827",
+                        fontWeight: 800,
+                      }}
+                    >
+                      차변 {n(totals.debitTotal).toLocaleString()} / 대변{" "}
+                      {n(totals.creditTotal).toLocaleString()}
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </Table>
+            </div>
+          </div>
 
-                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
-                    계정명: {l.accountName ?? "-"}
-                  </div>
-                </td>
-
-                <td>
-                  <Form.Select
-                    value={l.dcType}
-                    onChange={(e) =>
-                      updateLine(idx, {
-                        dcType: e.target.value as "DEBIT" | "CREDIT",
-                      })
-                    }
-                  >
-                    <option value="DEBIT">차변(DEBIT)</option>
-                    <option value="CREDIT">대변(CREDIT)</option>
-                  </Form.Select>
-                </td>
-
-                <td className="text-end">
-                  <Form.Control
-                    type="number"
-                    min={0}
-                    value={n(l.amount)}
-                    onChange={(e) => updateLine(idx, { amount: n(e.target.value) })}
-                  />
-                </td>
-
-                <td>
-                  <Form.Control
-                    value={l.lineRemark ?? ""}
-                    onChange={(e) => updateLine(idx, { lineRemark: e.target.value })}
-                    placeholder="라인 적요"
-                  />
-                </td>
-
-                <td className="text-center">
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => removeLine(idx)}
-                  >
-                    삭제
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-
-          <tfoot>
-            <tr style={{ fontWeight: 700 }}>
-              <td colSpan={3} className="text-end">
-                합계
-              </td>
-              <td className="text-end">
-                차변 {n(totals.debitTotal).toLocaleString()} / 대변{" "}
-                {n(totals.creditTotal).toLocaleString()}
-              </td>
-              <td colSpan={2}></td>
-            </tr>
-          </tfoot>
-        </Table>
-
-        <Button variant="outline-primary" onClick={addLine}>
-          라인 추가
-        </Button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              marginTop: "16px",
+            }}
+          >
+            <Button
+              variant="outline-primary"
+              onClick={addLine}
+              style={{
+                backgroundColor: "#eef2f7",
+                border: "1px solid #dbe2ea",
+                color: "#475569",
+                borderRadius: "10px",
+                padding: "9px 14px",
+                fontWeight: 700,
+              }}
+            >
+              라인 추가
+            </Button>
+          </div>
+        </div>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer
+        style={{
+          padding: "18px 24px",
+          borderTop: "1px solid #eef2f7",
+          backgroundColor: "#ffffff",
+          gap: "10px",
+        }}
+      >
         {selectedId && (
-          <Button variant="danger" onClick={onDelete}>
+          <Button
+            variant="danger"
+            onClick={onDelete}
+            style={{
+              borderRadius: "10px",
+              padding: "10px 16px",
+              fontWeight: 700,
+            }}
+          >
             삭제
           </Button>
         )}
-        <Button variant="secondary" onClick={onClose}>
+
+        <Button
+          variant="secondary"
+          onClick={onClose}
+          style={{
+            backgroundColor: "#ffffff",
+            color: "#475569",
+            border: "1px solid #dbe2ea",
+            borderRadius: "10px",
+            padding: "10px 16px",
+            fontWeight: 700,
+          }}
+        >
           닫기
         </Button>
-        <Button onClick={onSave}>저장</Button>
+
+        <Button
+          onClick={onSave}
+          style={{
+            backgroundColor: "#6b7280",
+            borderColor: "#6b7280",
+            borderRadius: "10px",
+            padding: "10px 18px",
+            fontWeight: 700,
+          }}
+        >
+          저장
+        </Button>
       </Modal.Footer>
     </Modal>
   );

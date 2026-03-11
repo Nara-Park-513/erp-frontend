@@ -1,16 +1,14 @@
-// ✅ StockStatus.tsx (전체 복붙용) — "리스트 안나옴" 구조 수정 버전
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Table } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
-import SideBar from "../include/SideBar";
+// import SideBar from "../include/SideBar";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
-import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
 import { InputGroup, Search } from "../stylesjs/Input.styles";
-import { WhiteBtn, MainSubmitBtn, BtnRight } from "../stylesjs/Button.styles";
-import Lnb from "../include/Lnb";
+import { BtnRight } from "../stylesjs/Button.styles";
+// import Lnb from "../include/Lnb";
 
 import StockModal, { StockForm } from "../component/stock/StockModal";
 
@@ -40,7 +38,6 @@ type Item = {
 const API_STOCK = "http://localhost:8888/api/stock";
 const API_ITEM = "http://localhost:8888/api/inv/items";
 
-// ✅ 숫자 안전
 const n = (v: any) => Number(v ?? 0) || 0;
 
 const StockStatus = () => {
@@ -48,7 +45,6 @@ const StockStatus = () => {
   const [stockList, setStockList] = useState<StockItem[]>([]);
   const [itemList, setItemList] = useState<Item[]>([]);
 
-  // ✅ 모달 상태
   const [show, setShow] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -64,16 +60,12 @@ const StockStatus = () => {
 
   const [form, setForm] = useState<StockForm>(emptyForm());
 
-  /* ===== 합계 ===== */
   const totals = useMemo(() => {
     const totalQty = stockList.reduce((s, i) => s + n(i.stockQty), 0);
     const totalAmount = stockList.reduce((s, i) => s + n(i.totalAmount), 0);
     return { totalQty, totalAmount };
   }, [stockList]);
 
-  /* =========================
-     품목 조회
-     ========================= */
   const fetchItems = async () => {
     try {
       const res = await axios.get(API_ITEM, {
@@ -100,24 +92,24 @@ const StockStatus = () => {
       setItemList(normalized);
     } catch (e: any) {
       console.error("❌ 품목 목록 조회 실패", e?.response?.status, e?.response?.data);
-      // ✅ 품목 실패해도 재고조회는 돌아야 하므로 itemList는 비워두되 진행
       setItemList([]);
     }
   };
 
-  /* =========================
-     재고 조회 (품목 없어도 표시되게)
-     ========================= */
   const fetchStock = async () => {
     try {
       const res = await axios.get(API_STOCK, {
-        params: { q: keyword?.trim() ? keyword.trim() : undefined, page: 0, size: 2000, sort: "id,desc" },
+        params: {
+          q: keyword?.trim() ? keyword.trim() : undefined,
+          page: 0,
+          size: 2000,
+          sort: "id,desc",
+        },
       });
 
       const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
       console.log("✅ stock raw sample =", rows?.[0]);
 
-      // ✅ itemList 기반 단가 매칭(없으면 0으로)
       const itemMap = new Map<number, Item>();
       itemList.forEach((it) => itemMap.set(it.id, it));
 
@@ -148,18 +140,12 @@ const StockStatus = () => {
     }
   };
 
-  /* =========================
-     최초 로딩: "품목, 재고" 둘 다 무조건 호출
-     ========================= */
   useEffect(() => {
-    fetchItems();   // 품목은 실패해도 됨
-    fetchStock();   // ✅ 재고는 무조건 떠야 함
+    fetchItems();
+    fetchStock();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* =========================
-     itemList가 들어오면 단가/코드 매칭 위해 재고 재조회(옵션)
-     ========================= */
   useEffect(() => {
     if (itemList.length > 0) {
       fetchStock();
@@ -167,11 +153,8 @@ const StockStatus = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemList.length]);
 
-  const stockMenu = [{ key: "status", label: "재고현황", path: "/stock" }];
+  // const stockMenu = [{ key: "status", label: "재고현황", path: "/stock" }];
 
-  /* =========================
-     모달 열기/닫기
-     ========================= */
   const openCreate = async () => {
     await fetchItems();
     setMode("create");
@@ -202,9 +185,6 @@ const StockStatus = () => {
     setForm(emptyForm());
   };
 
-  /* =========================
-     저장/수정
-     ========================= */
   const saveStock = async () => {
     const payload = {
       itemId: form.itemId,
@@ -221,8 +201,11 @@ const StockStatus = () => {
     }
 
     try {
-      if (mode === "edit" && selectedId) await axios.put(`${API_STOCK}/${selectedId}`, payload);
-      else await axios.post(API_STOCK, payload);
+      if (mode === "edit" && selectedId) {
+        await axios.put(`${API_STOCK}/${selectedId}`, payload);
+      } else {
+        await axios.post(API_STOCK, payload);
+      }
 
       await fetchStock();
       closeModal();
@@ -232,9 +215,6 @@ const StockStatus = () => {
     }
   };
 
-  /* =========================
-     삭제
-     ========================= */
   const deleteStock = async () => {
     if (!selectedId) return;
     if (!window.confirm("정말 삭제 하시겠습니까")) return;
@@ -252,94 +232,380 @@ const StockStatus = () => {
   return (
     <>
       <div className="fixed-top">
-        <Top />
         <Header />
+        <Top />
       </div>
-      <SideBar />
 
-      <Container fluid>
-        <Row>
-          <Col>
-            <Flex>
-              <Left>
-                <Lnb menuList={stockMenu} title="재고현황" />
-              </Left>
+      {/* <SideBar /> */}
 
-              <Right>
-                <TopWrap />
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          minHeight: "100vh",
+          paddingTop: "120px",
+        }}
+      >
+        <Container fluid>
+          <Row>
+            <Col>
+              <Flex>
+                <Left>
+                  {/* <Lnb menuList={stockMenu} title="재고현황" /> */}
+                </Left>
 
-                <JustifyContent>
-                  <TableTitle>재고현황</TableTitle>
+                <Right style={{ marginTop: "-20px" }}>
+                  <TopWrap />
 
-                  <InputGroup>
-                    <Search
-                      type="search"
-                      placeholder="품목코드/품목명 검색"
-                      value={keyword}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKeyword(e.target.value)}
-                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === "Enter") fetchStock();
+                  <div
+                    style={{
+                      marginBottom: "14px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ lineHeight: 1.2 }}>
+                      <TableTitle
+                        style={{
+                          margin: 0,
+                          padding: 0,
+                          color: "#1f2937",
+                          fontWeight: 700,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        재고현황
+                      </TableTitle>
+
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "14px",
+                          color: "#6b7280",
+                          fontWeight: 500,
+                        }}
+                      >
+                        목록
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e8ecf4",
+                      borderRadius: "16px",
+                      padding: "16px",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <div
+  style={{
+    width: "100%",
+    display: "flex",
+    justifyContent: "flex-end",
+  }}
+>
+  <InputGroup
+    style={{
+      display: "flex",
+      gap: "10px",
+      alignItems: "center",
+      flexWrap: "nowrap",
+    }}
+  >
+    <Search
+      type="search"
+      placeholder="품목코드/품목명 검색"
+      value={keyword}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        setKeyword(e.target.value)
+      }
+      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") fetchStock();
+      }}
+      style={{
+        width: "280px",
+        borderRadius: "10px",
+        border: "1px solid #dbe2ea",
+        padding: "10px 12px",
+      }}
+    />
+
+    <button
+      type="button"
+      onClick={fetchStock}
+      style={{
+        backgroundColor: "#ffffff",
+        color: "#475569",
+        border: "1px solid #dbe2ea",
+        borderRadius: "10px",
+        padding: "10px 14px",
+        fontSize: "14px",
+        fontWeight: 600,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      조회
+    </button>
+  </InputGroup>
+</div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e8ecf4",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+                    }}
+                  >
+                    <Table responsive className="mb-0 align-middle">
+                      <thead>
+                        <tr
+                          style={{
+                            background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                          }}
+                        >
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            품목코드
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            품목명
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                              textAlign: "right",
+                            }}
+                          >
+                            재고수량
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                              textAlign: "right",
+                            }}
+                          >
+                            단가
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                              textAlign: "right",
+                            }}
+                          >
+                            재고금액
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {stockList.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              style={{
+                                textAlign: "center",
+                                padding: "44px 16px",
+                                color: "#98a2b3",
+                                fontSize: "14px",
+                              }}
+                            >
+                              조회된 재고가 없습니다.
+                            </td>
+                          </tr>
+                        ) : (
+                          stockList.map((i, index) => (
+                            <tr
+                              key={i.id}
+                              onClick={() => openEdit(i)}
+                              style={{
+                                cursor: "pointer",
+                                backgroundColor: index % 2 === 0 ? "#ffffff" : "#fcfdff",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#111827",
+                                  fontWeight: 600,
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {i.itemCode}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {i.itemName}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  textAlign: "right",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {n(i.stockQty).toLocaleString()}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  textAlign: "right",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {n(i.unitPrice).toLocaleString()}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  textAlign: "right",
+                                  color: "#111827",
+                                  fontWeight: 700,
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {n(i.totalAmount).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+
+                      {stockList.length > 0 && (
+                        <tfoot>
+                          <tr
+                            style={{
+                              backgroundColor: "#f8fafc",
+                            }}
+                          >
+                            <th
+                              colSpan={2}
+                              style={{
+                                padding: "16px 18px",
+                                textAlign: "center",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderTop: "1px solid #e8ecf4",
+                              }}
+                            >
+                              합계
+                            </th>
+                            <th
+                              style={{
+                                padding: "16px 18px",
+                                textAlign: "right",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#111827",
+                                borderTop: "1px solid #e8ecf4",
+                              }}
+                            >
+                              {totals.totalQty.toLocaleString()}
+                            </th>
+                            <th
+                              style={{
+                                borderTop: "1px solid #e8ecf4",
+                                backgroundColor: "#f8fafc",
+                              }}
+                            ></th>
+                            <th
+                              style={{
+                                padding: "16px 18px",
+                                textAlign: "right",
+                                fontSize: "15px",
+                                fontWeight: 800,
+                                color: "#111827",
+                                borderTop: "1px solid #e8ecf4",
+                              }}
+                            >
+                              {totals.totalAmount.toLocaleString()}
+                            </th>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </Table>
+                  </div>
+
+                  <BtnRight style={{ marginTop: "14px" }}>
+                    <button
+                      type="button"
+                      onClick={openCreate}
+                      style={{
+                        backgroundColor: "#6b7280",
+                        color: "#ffffff",
+                        border: "1px solid #6b7280",
+                        borderRadius: "10px",
+                        padding: "10px 18px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        boxShadow: "0 4px 10px rgba(107, 114, 128, 0.16)",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer",
                       }}
-                    />
-                    <WhiteBtn className="mx-2" onClick={fetchStock}>
-                      조회
-                    </WhiteBtn>
-                  </InputGroup>
-                </JustifyContent>
-
-                <Table responsive hover>
-                  <thead>
-                    <tr>
-                      <th>품목코드</th>
-                      <th>품목명</th>
-                      <th className="text-end">재고수량</th>
-                      <th className="text-end">단가</th>
-                      <th className="text-end">재고금액</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {stockList.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="text-center">
-                          조회된 재고가 없습니다.
-                        </td>
-                      </tr>
-                    )}
-
-                    {stockList.map((i) => (
-                      <tr key={i.id} onClick={() => openEdit(i)} style={{ cursor: "pointer" }}>
-                        <td>{i.itemCode}</td>
-                        <td>{i.itemName}</td>
-                        <td className="text-end">{n(i.stockQty).toLocaleString()}</td>
-                        <td className="text-end">{n(i.unitPrice).toLocaleString()}</td>
-                        <td className="text-end">{n(i.totalAmount).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-
-                  {stockList.length > 0 && (
-                    <tfoot>
-                      <tr style={{ fontWeight: 700 }}>
-                        <td colSpan={2} className="text-center">
-                          합계
-                        </td>
-                        <td className="text-end">{totals.totalQty.toLocaleString()}</td>
-                        <td></td>
-                        <td className="text-end">{totals.totalAmount.toLocaleString()}</td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </Table>
-
-                <BtnRight>
-                  <MainSubmitBtn onClick={openCreate}>재고등록</MainSubmitBtn>
-                </BtnRight>
-              </Right>
-            </Flex>
-          </Col>
-        </Row>
-      </Container>
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#5b6472";
+                        e.currentTarget.style.borderColor = "#5b6472";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#6b7280";
+                        e.currentTarget.style.borderColor = "#6b7280";
+                      }}
+                    >
+                      재고등록
+                    </button>
+                  </BtnRight>
+                </Right>
+              </Flex>
+            </Col>
+          </Row>
+        </Container>
+      </div>
 
       <StockModal
         show={show}

@@ -11,10 +11,18 @@ const MyPage = () => {
     return(
         <>
 <div className="fixed-top">
+    <Header/>
   <Top/>
-  <Header/>
+  
 </div>
-<SideBar/>
+<div
+        style={{
+          backgroundColor: "#ffffff",
+          minHeight: "100vh",
+          paddingTop: "120px",
+        }}
+      >
+{/*<SideBar/>*/}
 <Container fluid>
     <Row>
         <Col>
@@ -29,6 +37,7 @@ const MyPage = () => {
         </Col>
     </Row>
 </Container>
+</div>
         </>
     )
 }

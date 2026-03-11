@@ -3,12 +3,11 @@ import { useEffect, useState } from "react";
 import { Container, Row, Col, Table, Button } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
-import SideBar from "../include/SideBar";
+// import SideBar from "../include/SideBar";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
-import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
-import { BtnRight, MainSubmitBtn, WhiteBtn } from "../stylesjs/Button.styles";
-import Lnb from "../include/Lnb";
+import { BtnRight } from "../stylesjs/Button.styles";
+// import Lnb from "../include/Lnb";
 import NoticeModal from "../component/notice/NoticeModal";
 
 /** axios 설정 */
@@ -50,7 +49,6 @@ type NoticeRow = {
   viewCount?: number;
 };
 
-// 임시 테스트용 로그인 유저
 const currentUser = { id: 1 };
 
 export default function NoticeList() {
@@ -83,13 +81,13 @@ export default function NoticeList() {
         [];
 
       const normalized: NoticeRow[] = list.map((r: any) => {
-        const writerName = r.member?.username ?? r.writer ?? r.createdBy ?? r.author ?? "관리자";
-        const createdAtRaw = r.createdAt ?? r.createdDate ?? r.date ?? new Date().toISOString();
+        const createdAtRaw =
+          r.createdAt ?? r.createdDate ?? r.date ?? new Date().toISOString();
 
         return {
           id: Number(r.id),
           title: String(r.title ?? r.subject ?? ""),
-          writer: "관리자", // 작성자 강제
+          writer: "관리자",
           createdAt: createdAtRaw
             ? new Date(String(createdAtRaw)).toISOString().slice(0, 10)
             : new Date().toISOString().slice(0, 10),
@@ -178,6 +176,7 @@ export default function NoticeList() {
   const handleDelete = async () => {
     if (!selected) return;
     if (!window.confirm("삭제하시겠습니까")) return;
+
     try {
       await api.delete(`${API_BASE}/${selected.id}`);
       setShowModal(false);
@@ -187,99 +186,333 @@ export default function NoticeList() {
     }
   };
 
+  // const menuList = [{ key: "notice", label: "공지사항", path: "/notice" }];
+
   return (
     <>
       <div className="fixed-top">
-        <Top />
         <Header />
+        <Top />
       </div>
-      <SideBar />
 
-      <Container fluid>
-        <Row>
-          <Col>
-            <Flex>
-              <Left>
-                <Lnb
-                  menuList={[{ key: "notice", label: "공지사항", path: "/notice" }]}
-                  title="공지사항"
-                />
-              </Left>
+      {/* <SideBar /> */}
 
-              <Right>
-                <TopWrap />
-                <JustifyContent>
-                  <TableTitle>공지사항</TableTitle>
-                </JustifyContent>
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          minHeight: "100vh",
+          paddingTop: "120px",
+        }}
+      >
+        <Container fluid>
+          <Row>
+            <Col>
+              <Flex>
+                <Left>
+                  {/* <Lnb menuList={menuList} title="공지사항" /> */}
+                </Left>
 
-                <div style={{ marginTop: 8, fontWeight: 700 }}>공지 목록</div>
+                <Right style={{ marginTop: "-20px" }}>
+                  <TopWrap />
 
-                <div
-                  style={{
-                    marginTop: 8,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 10,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div style={{ maxHeight: 360, overflowY: "auto" }}>
-                    <Table bordered hover responsive style={{ marginBottom: 0 }}>
-                      <thead>
-                        <tr>
-                          <th style={{ width: 90 }}>구분</th>
-                          <th>제목</th>
-                          <th style={{ width: 140 }}>작성자</th>
-                          <th style={{ width: 160 }}>작성일</th>
-                          <th style={{ width: 90 }}>상세</th>
-                          <th style={{ width: 90 }}>조회</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="text-center">
-                              {loading ? "불러오는 중..." : "데이터가 없습니다"}
-                            </td>
-                          </tr>
-                        )}
+                  <div
+                    style={{
+                      marginBottom: "14px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ lineHeight: 1.2 }}>
+                      <TableTitle
+                        style={{
+                          margin: 0,
+                          padding: 0,
+                          color: "#1f2937",
+                          fontWeight: 700,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        공지사항
+                      </TableTitle>
 
-                        {rows.map((r) => (
-                          <tr key={r.id}>
-                            <td className="text-center">{r.isPinned ? "공지" : "-"}</td>
-                            <td style={{ whiteSpace: "pre-line" }}>
-                              <span
-                                style={{ cursor: "pointer", fontWeight: r.isPinned ? 700 : 400 }}
-                                onClick={() => openView(r.id)}
-                              >
-                                {r.title}
-                              </span>
-                            </td>
-                            <td className="text-center">{r.writer}</td>
-                            <td className="text-center">{r.createdAt}</td>
-                            <td className="text-center">
-                              <Button size="sm" variant="link" onClick={() => openView(r.id)}>
-                                보기
-                              </Button>
-                            </td>
-                            <td className="text-end">
-                              {r.viewCount != null ? r.viewCount.toLocaleString() : "-"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "14px",
+                          color: "#6b7280",
+                          fontWeight: 500,
+                        }}
+                      >
+                        목록
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <BtnRight style={{ marginTop: 12 }}>
-                  <WhiteBtn onClick={fetchList}>새로고침</WhiteBtn>
-                  <MainSubmitBtn onClick={openCreate}>신규</MainSubmitBtn>
-                </BtnRight>
-              </Right>
-            </Flex>
-          </Col>
-        </Row>
-      </Container>
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e8ecf4",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "16px 18px 10px 18px",
+                        borderBottom: "1px solid #eef2f7",
+                        background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+                        fontSize: "15px",
+                        fontWeight: 700,
+                        color: "#374151",
+                      }}
+                    >
+                      공지 목록
+                    </div>
+
+                    <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+                      <Table responsive className="mb-0 align-middle">
+                        <thead>
+                          <tr
+                            style={{
+                              background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                            }}
+                          >
+                            <th
+                              style={{
+                                width: "90px",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                                textAlign: "center",
+                              }}
+                            >
+                              구분
+                            </th>
+                            <th
+                              style={{
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                              }}
+                            >
+                              제목
+                            </th>
+                            <th
+                              style={{
+                                width: "140px",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                                textAlign: "center",
+                              }}
+                            >
+                              작성자
+                            </th>
+                            <th
+                              style={{
+                                width: "160px",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                                textAlign: "center",
+                              }}
+                            >
+                              작성일
+                            </th>
+                            <th
+                              style={{
+                                width: "90px",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                                textAlign: "center",
+                              }}
+                            >
+                              상세
+                            </th>
+                            <th
+                              style={{
+                                width: "90px",
+                                padding: "15px 18px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#475467",
+                                borderBottom: "1px solid #e8ecf4",
+                                textAlign: "right",
+                              }}
+                            >
+                              조회
+                            </th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {rows.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={6}
+                                style={{
+                                  textAlign: "center",
+                                  padding: "44px 16px",
+                                  color: "#98a2b3",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                {loading ? "불러오는 중..." : "데이터가 없습니다"}
+                              </td>
+                            </tr>
+                          ) : (
+                            rows.map((r, idx) => (
+                              <tr
+                                key={r.id}
+                                style={{
+                                  backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fcfdff",
+                                }}
+                              >
+                                <td
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "14px 18px",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                    fontWeight: r.isPinned ? 700 : 500,
+                                  }}
+                                >
+                                  {r.isPinned ? "공지" : "-"}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    borderBottom: "1px solid #eef2f7",
+                                    whiteSpace: "pre-line",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      cursor: "pointer",
+                                      color: "#111827",
+                                      fontWeight: r.isPinned ? 700 : 500,
+                                    }}
+                                    onClick={() => openView(r.id)}
+                                  >
+                                    {r.title}
+                                  </span>
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "14px 18px",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {r.writer}
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "14px 18px",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {r.createdAt}
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "14px 18px",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  <Button
+                                    size="sm"
+                                    onClick={() => openView(r.id)}
+                                    style={{
+                                      backgroundColor: "#ffffff",
+                                      color: "#475569",
+                                      border: "1px solid #dbe2ea",
+                                      borderRadius: "8px",
+                                      padding: "4px 10px",
+                                      fontSize: "12px",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    보기
+                                  </Button>
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "right",
+                                    padding: "14px 18px",
+                                    color: "#111827",
+                                    fontWeight: 600,
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {r.viewCount != null ? r.viewCount.toLocaleString() : "-"}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  <BtnRight style={{ marginTop: "12px", gap: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={fetchList}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#475569",
+                        border: "1px solid #dbe2ea",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      새로고침
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={openCreate}
+                      style={{
+                        backgroundColor: "#6b7280",
+                        color: "#ffffff",
+                        border: "1px solid #6b7280",
+                        borderRadius: "10px",
+                        padding: "10px 18px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        boxShadow: "0 4px 10px rgba(107, 114, 128, 0.16)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      신규
+                    </button>
+                  </BtnRight>
+                </Right>
+              </Flex>
+            </Col>
+          </Row>
+        </Container>
+      </div>
 
       <NoticeModal
         show={showModal}

@@ -132,67 +132,384 @@ const Pay = () => {
   }, []);
 
   return (
-    <div className="pay mt-120">
-      <h4 className="fs-16-600-black">전자결재</h4>
-      <h5 className="my-2 fs-14-400-gray">내 기안문서</h5>
-      <div className="table-wrap">
-        <Table className="draft table-bordered" responsive>
-          <thead>
-            <tr className="text-center">
-              <th>기안일자</th>
-              <th>제목</th>
-              <th>기안자</th>
-              <th>결재자</th>
-              <th>진행상태</th>
-              <th>보기</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr className="text-center">
-                <td colSpan={6}>{loading ? "불러오는 중..." : "기안문서가 없습니다"}</td>
-              </tr>
-            ) : (
-              rows.map((r) => (
-                <tr key={r.id} className="text-center">
-                  <td>{r.draftDate}</td>
-                  <td>{r.title}</td>
-                  <td>{r.writer}</td>
-                  <td>{r.approver}</td>
-                  <td>{r.status}</td>
-                  <td>
-                    <Button size="sm" variant="link" onClick={() => onView(r.id)}>
+    <>
+      <div
+        style={{
+          //background: "linear-gradient(180deg, #f7f8fc 0%, #f3f5f9 100%)",
+          minHeight: "100%",
+          padding: "0",
+        }}
+      >
+        <div
+          className="pay mt-120"
+          style={{
+            backgroundColor: "transparent",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "14px",
+              display: "flex",
+              alignItems: "flex-start",
+            }}
+          >
+            <div style={{ lineHeight: 1.2 }}>
+              <h4
+                style={{
+                  margin: 0,
+                  padding: 0,
+                  color: "#1f2937",
+                  fontWeight: 700,
+                  fontSize: "24px",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                전자결재
+              </h4>
+
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  fontWeight: 500,
+                }}
+              >
+                목록
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8ecf4",
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+            }}
+          >
+            <div
+              style={{
+                padding: "16px 18px 10px 18px",
+                borderBottom: "1px solid #eef2f7",
+                background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+                fontSize: "15px",
+                fontWeight: 700,
+                color: "#374151",
+              }}
+            >
+              내 기안문서
+            </div>
+
+            <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+              <Table responsive className="mb-0 align-middle" style={{ marginBottom: 0 }}>
+                <thead>
+                  <tr
+                    style={{
+                      background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                    }}
+                  >
+                    <th
+                      style={{
+                        width: "140px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      기안일자
+                    </th>
+                    <th
+                      style={{
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                      }}
+                    >
+                      제목
+                    </th>
+                    <th
+                      style={{
+                        width: "140px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      기안자
+                    </th>
+                    <th
+                      style={{
+                        width: "140px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      결재자
+                    </th>
+                    <th
+                      style={{
+                        width: "120px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
+                      진행상태
+                    </th>
+                    <th
+                      style={{
+                        width: "90px",
+                        padding: "15px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#475467",
+                        borderBottom: "1px solid #e8ecf4",
+                        textAlign: "center",
+                      }}
+                    >
                       보기
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </Table>
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        style={{
+                          textAlign: "center",
+                          padding: "44px 16px",
+                          color: "#98a2b3",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {loading ? "불러오는 중..." : "기안문서가 없습니다"}
+                      </td>
+                    </tr>
+                  ) : (
+                    rows.map((r, idx) => (
+                      <tr
+                        key={r.id}
+                        style={{
+                          backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fcfdff",
+                        }}
+                      >
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            color: "#374151",
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          {r.draftDate}
+                        </td>
+
+                        <td
+                          style={{
+                            padding: "14px 18px",
+                            color: "#111827",
+                            fontWeight: 600,
+                            borderBottom: "1px solid #eef2f7",
+                            whiteSpace: "pre-line",
+                          }}
+                        >
+                          {r.title}
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            color: "#374151",
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          {r.writer}
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            color: "#374151",
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          {r.approver}
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            color: "#374151",
+                            borderBottom: "1px solid #eef2f7",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {r.status}
+                        </td>
+
+                        <td
+                          style={{
+                            textAlign: "center",
+                            padding: "14px 18px",
+                            borderBottom: "1px solid #eef2f7",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => onView(r.id)}
+                            style={{
+                              backgroundColor: "#ffffff",
+                              color: "#475569",
+                              border: "1px solid #dbe2ea",
+                              borderRadius: "8px",
+                              padding: "4px 10px",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            보기
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: "12px",
+            }}
+          >
+            <button
+              type="button"
+              onClick={fetchList}
+              style={{
+                backgroundColor: "#ffffff",
+                color: "#475569",
+                border: "1px solid #dbe2ea",
+                borderRadius: "10px",
+                padding: "10px 14px",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 읽기 전용 모달 */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{modalData?.title}</Modal.Title>
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
+        <Modal.Header
+          closeButton
+          style={{
+            borderBottom: "1px solid #eef2f7",
+            background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+          }}
+        >
+          <Modal.Title
+            style={{
+              fontWeight: 700,
+              color: "#1f2937",
+            }}
+          >
+            {modalData?.title}
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <p>
-            <strong>기안자:</strong> {modalData?.writer} <br />
-            <strong>결재자:</strong> {modalData?.approver} <br />
-            <strong>진행상태:</strong> {modalData?.status}
-          </p>
-          <hr />
-          <pre style={{ whiteSpace: "pre-wrap" }}>{modalData?.content}</pre>
+
+        <Modal.Body
+          style={{
+            padding: "20px 22px",
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "8px",
+              marginBottom: "14px",
+              color: "#475569",
+              fontSize: "14px",
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              <strong style={{ color: "#111827" }}>기안자:</strong> {modalData?.writer}
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong style={{ color: "#111827" }}>결재자:</strong> {modalData?.approver}
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong style={{ color: "#111827" }}>진행상태:</strong> {modalData?.status}
+            </p>
+          </div>
+
+          <hr style={{ borderColor: "#eef2f7", margin: "0 0 14px 0" }} />
+
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              margin: 0,
+              color: "#374151",
+              lineHeight: 1.7,
+              fontFamily: "inherit",
+              minHeight: "120px",
+            }}
+          >
+            {modalData?.content || "-"}
+          </pre>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
+
+        <Modal.Footer
+          style={{
+            borderTop: "1px solid #eef2f7",
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <Button
+            onClick={() => setShowModal(false)}
+            style={{
+              backgroundColor: "#ffffff",
+              color: "#475569",
+              border: "1px solid #dbe2ea",
+              borderRadius: "10px",
+              padding: "8px 14px",
+              fontWeight: 600,
+            }}
+          >
             닫기
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+    </>
   );
 };
 

@@ -1,41 +1,37 @@
-import {useState} from "react";
-
+import { useState } from "react";
 import {
-  HeaderWrapper, 
-  NavBar, 
-  Brand, 
+  HeaderWrapper,
+  NavBar,
+  Brand,
   HamburgerButton,
-  Menu, 
-  MenuItem, 
+  Menu,
+  MenuItem,
   MenuLink,
-  SearchForm, 
-  SearchInput, 
+  SearchForm,
+  SearchInput,
   SearchButton,
 } from "../stylesjs/Header.styles";
 
-  //[false, 'sm', 'md', 'lg', 'xl', 'xxl']
-const Header:React.FC = () => { //jsx
-  const [menuOpen, setMenuOpen] =useState(false);
-  const toggleMenu = () => setMenuOpen(!menuOpen);
-    return(
-        <>
-        <HeaderWrapper>
+const Header: React.FC = () => {
+  const [menuOpen, setMenuOpen] = useState(false);
 
-<NavBar>
-  <Brand to="/">samERP</Brand>  
-  <HamburgerButton onClick={toggleMenu}>
-  ☰
-  </HamburgerButton>
-</NavBar>  
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
 
-<Menu>
-  <MenuItem>
-    <MenuLink to="/mypage">MyPage</MenuLink>
-  </MenuItem>
-  <MenuItem>
+  return (
+    <HeaderWrapper>
+      <NavBar>
+        <Brand to="/">DAON ERP</Brand>
+        <HamburgerButton onClick={toggleMenu}>☰</HamburgerButton>
+      </NavBar>
+
+      <Menu $isOpen={menuOpen}>
+        {/*<MenuItem>
+          <MenuLink to="/mypage">MyPage</MenuLink>
+        </MenuItem>*/}
+        <MenuItem>
           <MenuLink to="/admin">Admin</MenuLink>
         </MenuItem>
-        <MenuItem>
+        {/*<MenuItem>
           <MenuLink to="/inventory">재고1</MenuLink>
         </MenuItem>
         <MenuItem>
@@ -46,17 +42,15 @@ const Header:React.FC = () => { //jsx
         </MenuItem>
         <MenuItem>
           <MenuLink to="/ac2">회계2</MenuLink>
-        </MenuItem>  
-</Menu>   
+        </MenuItem>*/}
+      </Menu>
 
-<SearchForm>
-  <SearchInput type="search" placeholder="Search"/>
-  <SearchButton type="submit">Search</SearchButton>  
-</SearchForm>     
-        </HeaderWrapper>
-        </>
-    )
-}
+      <SearchForm>
+        <SearchInput type="search" placeholder="Search" />
+        <SearchButton type="submit">Search</SearchButton>
+      </SearchForm>
+    </HeaderWrapper>
+  );
+};
 
 export default Header;
-/*Bootstrap에 반응형구간(breakpoint)를 의미합니다 배열에 각요소에 대해 콜백함수를 실행하여 새로운 JSX요소 목록을 만듭니다*/

@@ -5,7 +5,6 @@ import Top from "../include/Top";
 import Header from "../include/Header";
 import SideBar from "../include/SideBar";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
-import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
 import Lnb from "../include/Lnb";
 
@@ -83,46 +82,44 @@ const normalizeDcType = (v: any): "DEBIT" | "CREDIT" | "UNKNOWN" => {
 export default function FundStatus() {
   const [journalList, setJournalList] = useState<Journal[]>([]);
 
-const fetchJournals = async () => {
-  try {
-    const res = await api.get<any>(API_BASE, { params: { page: 0, size: 1000 } });
+  const fetchJournals = async () => {
+    try {
+      const res = await api.get<any>(API_BASE, { params: { page: 0, size: 1000 } });
 
-    const baseList: Journal[] = Array.isArray(res.data)
-      ? res.data
-      : res.data?.content ?? [];
+      const baseList: Journal[] = Array.isArray(res.data)
+        ? res.data
+        : res.data?.content ?? [];
 
-    console.log("✅ baseList sample:", baseList[0]);
+      console.log("✅ baseList sample:", baseList[0]);
 
-    const ids: number[] = baseList
-      .map((j: any) => j?.id)
-      .filter((id: any) => typeof id === "number");
+      const ids: number[] = baseList
+        .map((j: any) => j?.id)
+        .filter((id: any) => typeof id === "number");
 
-    // ✅ 핵심: id가 없으면 상세조회 못하니까 baseList 그대로 세팅
-    if (ids.length === 0) {
-      console.warn("⚠️ 목록에 id가 없어서 상세조회 불가 → baseList 사용");
-      setJournalList(
-        baseList.map((j: any) => ({
-          ...j,
-          lines: j.lines ?? [],
-        }))
+      if (ids.length === 0) {
+        console.warn("⚠️ 목록에 id가 없어서 상세조회 불가 → baseList 사용");
+        setJournalList(
+          baseList.map((j: any) => ({
+            ...j,
+            lines: j.lines ?? [],
+          }))
+        );
+        return;
+      }
+
+      const detailList: Journal[] = await Promise.all(
+        ids.map(async (id) => {
+          const d = await api.get<Journal>(`${API_BASE}/${id}`);
+          return d.data;
+        })
       );
-      return;
+
+      console.log("✅ detailList[0].lines:", detailList[0]?.lines);
+      setJournalList(detailList);
+    } catch (e) {
+      console.error("전표 조회 실패", e);
     }
-
-    const detailList: Journal[] = await Promise.all(
-      ids.map(async (id) => {
-        const d = await api.get<Journal>(`${API_BASE}/${id}`);
-        return d.data;
-      })
-    );
-
-    console.log("✅ detailList[0].lines:", detailList[0]?.lines);
-    setJournalList(detailList);
-  } catch (e) {
-    console.error("전표 조회 실패", e);
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchJournals();
@@ -134,7 +131,7 @@ const fetchJournals = async () => {
     journalList.forEach((j) => {
       (j.lines ?? []).forEach((l: JournalLine) => {
         const code = String(l.accountCode ?? "").trim();
-        //if (!CASH_ACCOUNTS.includes(code)) return;
+        // if (!CASH_ACCOUNTS.includes(code)) return;
 
         if (!map.has(code)) {
           map.set(code, {
@@ -165,78 +162,265 @@ const fetchJournals = async () => {
   return (
     <>
       <div className="fixed-top">
-        <Top />
         <Header />
+        <Top />
       </div>
-      <SideBar />
 
-      <Container fluid>
-        <Row>
-          <Col>
-            <Flex>
-              <Left>
-                <Lnb menuList={stockMenu} title="자금현황" />
-              </Left>
+      {/*<SideBar />*/}
 
-              <Right>
-                <TopWrap />
-                <JustifyContent>
-                  <TableTitle>자금현황표</TableTitle>
-                </JustifyContent>
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          minHeight: "100vh",
+          paddingTop: "120px",
+        }}
+      >
+        <Container fluid>
+          <Row>
+            <Col>
+              <Flex>
+                <Left>
+                  {/*<Lnb menuList={stockMenu} title="자금현황" />*/}
+                </Left>
 
-                <Table bordered hover responsive>
-                  <thead>
-                    <tr>
-                      <th>계정코드</th>
-                      <th>계정명</th>
-                      <th className="text-end">차변합</th>
-                      <th className="text-end">대변합</th>
-                      <th className="text-end">잔액</th>
-                    </tr>
-                  </thead>
+                <Right style={{ marginTop: "-20px" }}>
+                  <TopWrap />
 
-                  <tbody>
-                    {fundList.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="text-center">
-                          자금 내역이 없습니다
-                        </td>
-                      </tr>
-                    )}
+                  <div
+                    style={{
+                      marginBottom: "14px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ lineHeight: 1.2 }}>
+                      <TableTitle
+                        style={{
+                          margin: 0,
+                          padding: 0,
+                          color: "#1f2937",
+                          fontWeight: 700,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        자금현황표
+                      </TableTitle>
 
-                    {fundList.map((f) => (
-                      <tr key={f.accountCode}>
-                        <td>{f.accountCode}</td>
-                        <td>{f.accountName || "-"}</td>
-                        <td className="text-end">{f.debitTotal.toLocaleString()}</td>
-                        <td className="text-end">{f.creditTotal.toLocaleString()}</td>
-                        <td
-                          className="text-end"
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "14px",
+                          color: "#6b7280",
+                          fontWeight: 500,
+                        }}
+                      >
+                        목록
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e8ecf4",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+                    }}
+                  >
+                    <Table responsive className="mb-0 align-middle">
+                      <thead>
+                        <tr
                           style={{
-                            fontWeight: 700,
-                            color: f.balance < 0 ? "crimson" : "black",
+                            background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
                           }}
                         >
-                          {f.balance.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            계정코드
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            계정명
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                              textAlign: "right",
+                            }}
+                          >
+                            차변합
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                              textAlign: "right",
+                            }}
+                          >
+                            대변합
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                              textAlign: "right",
+                            }}
+                          >
+                            잔액
+                          </th>
+                        </tr>
+                      </thead>
 
-                  <tfoot>
-                    <tr>
-                      <th colSpan={4} className="text-end">
-                        총 자금 잔액
-                      </th>
-                      <th className="text-end">{totalBalance.toLocaleString()}</th>
-                    </tr>
-                  </tfoot>
-                </Table>
-              </Right>
-            </Flex>
-          </Col>
-        </Row>
-      </Container>
+                      <tbody>
+                        {fundList.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              style={{
+                                textAlign: "center",
+                                padding: "44px 16px",
+                                color: "#98a2b3",
+                                fontSize: "14px",
+                              }}
+                            >
+                              자금 내역이 없습니다.
+                            </td>
+                          </tr>
+                        ) : (
+                          fundList.map((f, index) => (
+                            <tr
+                              key={f.accountCode}
+                              style={{
+                                backgroundColor: index % 2 === 0 ? "#ffffff" : "#fcfdff",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#111827",
+                                  fontWeight: 600,
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {f.accountCode}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {f.accountName || "-"}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                  textAlign: "right",
+                                }}
+                              >
+                                {f.debitTotal.toLocaleString()}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                  textAlign: "right",
+                                }}
+                              >
+                                {f.creditTotal.toLocaleString()}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  borderBottom: "1px solid #eef2f7",
+                                  textAlign: "right",
+                                  fontWeight: 700,
+                                  color: f.balance < 0 ? "#b42318" : "#111827",
+                                }}
+                              >
+                                {f.balance.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+
+                      <tfoot>
+                        <tr
+                          style={{
+                            backgroundColor: "#f8fafc",
+                          }}
+                        >
+                          <th
+                            colSpan={4}
+                            style={{
+                              padding: "16px 18px",
+                              textAlign: "right",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderTop: "1px solid #e8ecf4",
+                            }}
+                          >
+                            총 자금 잔액
+                          </th>
+                          <th
+                            style={{
+                              padding: "16px 18px",
+                              textAlign: "right",
+                              fontSize: "15px",
+                              fontWeight: 800,
+                              color: totalBalance < 0 ? "#b42318" : "#111827",
+                              borderTop: "1px solid #e8ecf4",
+                            }}
+                          >
+                            {totalBalance.toLocaleString()}
+                          </th>
+                        </tr>
+                      </tfoot>
+                    </Table>
+                  </div>
+                </Right>
+              </Flex>
+            </Col>
+          </Row>
+        </Container>
+      </div>
     </>
   );
 }

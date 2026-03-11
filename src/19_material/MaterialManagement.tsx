@@ -3,12 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Table } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
-import SideBar from "../include/SideBar";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
-import { JustifyContent } from "../stylesjs/Util.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
-import { MainSubmitBtn, BtnRight } from "../stylesjs/Button.styles";
-import Lnb from "../include/Lnb";
+import { BtnRight } from "../stylesjs/Button.styles";
 import MaterialModal, {
   MaterialOrder,
   MaterialOrderLine,
@@ -41,7 +38,6 @@ api.interceptors.response.use(
   }
 );
 
-// 백엔드 확정 전까지 임시 유지
 const API_BASE = "/api/material-orders";
 
 const emptyMaterialOrder = (): MaterialOrder => ({
@@ -53,6 +49,48 @@ const emptyMaterialOrder = (): MaterialOrder => ({
   status: "",
   lines: [{ itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
 });
+
+const getStatusStyle = (status?: string): React.CSSProperties => {
+  const value = (status ?? "").trim();
+
+  if (value.includes("완료")) {
+    return {
+      backgroundColor: "#e8f7ee",
+      color: "#1f7a45",
+      border: "1px solid #cdebd7",
+    };
+  }
+
+  if (value.includes("대기")) {
+    return {
+      backgroundColor: "#fff6e5",
+      color: "#a16207",
+      border: "1px solid #fde7b0",
+    };
+  }
+
+  if (value.includes("취소")) {
+    return {
+      backgroundColor: "#fdecec",
+      color: "#b42318",
+      border: "1px solid #f7caca",
+    };
+  }
+
+  if (value.includes("진행")) {
+    return {
+      backgroundColor: "#eaf2ff",
+      color: "#2457c5",
+      border: "1px solid #cfe0ff",
+    };
+  }
+
+  return {
+    backgroundColor: "#f3f4f6",
+    color: "#4b5563",
+    border: "1px solid #e5e7eb",
+  };
+};
 
 export default function MaterialManagement() {
   const [customerList, setCustomerList] = useState<Customer[]>([]);
@@ -305,65 +343,268 @@ export default function MaterialManagement() {
     }
   };
 
-  const stockMenu = [{ key: "status", label: "발주입력", path: "/sale" }];
-
   return (
     <>
       <div className="fixed-top">
-        <Top />
         <Header />
+        <Top />
       </div>
-      <SideBar />
 
-      <Container fluid>
-        <Row>
-          <Col>
-            <Flex>
-              <Left>
-                <Lnb menuList={stockMenu} title="발주입력" />
-              </Left>
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          minHeight: "100vh",
+          paddingTop: "120px",
+        }}
+      >
+        <Container fluid>
+          <Row>
+            <Col>
+              <Flex>
+                <Left>{/* 필요 시 메뉴 영역 */}</Left>
 
-              <Right>
-                <TopWrap />
-                <JustifyContent>
-                  <TableTitle>자재관리</TableTitle>
-                </JustifyContent>
+                <Right style={{ marginTop: "-20px" }}>
+                  <TopWrap />
 
-                <Table hover>
-                  <thead>
-                    <tr>
-                      <th>자재목록</th>
-                      <th>발주번호</th>
-                      <th>발주현황</th>
-                      <th>발주일자</th>
-                      <th>공급업체</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {materialOrderList.map((order) => (
-                      <tr
-                        key={order.id}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => openDetail(order.id!)}
+                  <div
+                    style={{
+                      marginBottom: "14px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ lineHeight: 1.2 }}>
+                      <TableTitle
+                        style={{
+                          margin: 0,
+                          padding: 0,
+                          color: "#1f2937",
+                          fontWeight: 700,
+                          letterSpacing: "-0.02em",
+                        }}
                       >
-                        <td>{order.lines?.[0]?.itemName ?? ""}</td>
-                        <td>{order.orderNo}</td>
-                        <td>{order.status ?? ""}</td>
-                        <td>{String(order.orderDate ?? "").slice(0, 10)}</td>
-                        <td>{order.customerName}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                        자재관리
+                      </TableTitle>
 
-                <BtnRight>
-                  <MainSubmitBtn onClick={openNew}>발주등록</MainSubmitBtn>
-                </BtnRight>
-              </Right>
-            </Flex>
-          </Col>
-        </Row>
-      </Container>
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "14px",
+                          color: "#6b7280",
+                          fontWeight: 500,
+                        }}
+                      >
+                        목록
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e8ecf4",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+                    }}
+                  >
+                    <Table hover responsive className="mb-0 align-middle">
+                      <thead>
+                        <tr
+                          style={{
+                            background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                          }}
+                        >
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            자재목록
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            발주번호
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            발주현황
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            발주일자
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            공급업체
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {materialOrderList.length > 0 ? (
+                          materialOrderList.map((order, index) => (
+                            <tr
+                              key={order.id}
+                              style={{
+                                cursor: "pointer",
+                                backgroundColor: index % 2 === 0 ? "#ffffff" : "#fcfdff",
+                                transition: "all 0.15s ease",
+                              }}
+                              onClick={() => openDetail(order.id!)}
+                            >
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#111827",
+                                  fontWeight: 600,
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {order.lines?.[0]?.itemName ?? ""}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {order.orderNo}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    ...getStatusStyle(order.status),
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    minWidth: "64px",
+                                    height: "30px",
+                                    borderRadius: "999px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    padding: "0 12px",
+                                  }}
+                                >
+                                  {order.status || "미등록"}
+                                </span>
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#4b5563",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {String(order.orderDate ?? "").slice(0, 10)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "14px 18px",
+                                  verticalAlign: "middle",
+                                  color: "#374151",
+                                  borderBottom: "1px solid #eef2f7",
+                                }}
+                              >
+                                {order.customerName}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              style={{
+                                textAlign: "center",
+                                padding: "44px 16px",
+                                color: "#98a2b3",
+                                fontSize: "14px",
+                              }}
+                            >
+                              등록된 발주 내역이 없습니다.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+
+                  <BtnRight style={{ marginTop: "14px" }}>
+                    <button
+                      type="button"
+                      onClick={openNew}
+                      style={{
+                        backgroundColor: "#6b7280",
+                        color: "#ffffff",
+                        border: "1px solid #6b7280",
+                        borderRadius: "10px",
+                        padding: "10px 18px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        boxShadow: "0 4px 10px rgba(107, 114, 128, 0.16)",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#5b6472";
+                        e.currentTarget.style.borderColor = "#5b6472";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#6b7280";
+                        e.currentTarget.style.borderColor = "#6b7280";
+                      }}
+                    >
+                      발주등록
+                    </button>
+                  </BtnRight>
+                </Right>
+              </Flex>
+            </Col>
+          </Row>
+        </Container>
+      </div>
 
       <MaterialModal
         show={show}
