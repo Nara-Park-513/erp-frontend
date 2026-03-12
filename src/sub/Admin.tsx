@@ -1,8 +1,4 @@
-//간단하게 리액트 만으로 처리하지만 but 다시함
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-
-import {Container, Row, Col, Button, Card,Table} from "react-bootstrap"
+import { Container, Row, Col, Button, Card, Table } from "react-bootstrap";
 import Callendar2 from "../3_common/Calendar2";
 import Pay from "../component/Pay";
 import Notice from "../component/Notice";
@@ -23,7 +19,7 @@ const Admin = () => {
         style={{
           backgroundColor: "#ffffff",
           minHeight: "100vh",
-          paddingTop: "120px",
+          paddingTop: "170px",
         }}
       >
         <Container

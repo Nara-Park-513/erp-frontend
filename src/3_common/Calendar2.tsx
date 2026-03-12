@@ -296,7 +296,7 @@ const Calendar2 = () => {
           <DayName
             key={day}
             style={{
-              padding: "10px 0 14px",
+              padding: "10px 0 12px",
               fontSize: isMobile ? 12 : 14,
               fontWeight: 700,
               color:
@@ -425,21 +425,21 @@ const Calendar2 = () => {
 
   return (
     <CalBg>
-      <CalTopMargin>
+      <CalTopMargin
+        style={{
+          marginTop: "-12px",
+        }}
+      >
         <Wrapper
           style={{
             width: "100%",
-            //background: "#ffffff",
-            //border: "1px solid #e8ecf4",
-            //borderRadius: "20px",
-            //boxShadow: "0 10px 28px rgba(15, 23, 42, 0.06)",
-            padding: "22px 20px 18px",
+            padding: "14px 20px 18px",
           }}
         >
           <Header
             style={{
               width: "100%",
-              marginBottom: "18px",
+              marginBottom: "12px",
               display: "grid",
               gridTemplateColumns: "56px 1fr 56px",
               alignItems: "center",

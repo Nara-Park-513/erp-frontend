@@ -135,75 +135,91 @@ const Pay = () => {
     <>
       <div
         style={{
-          //background: "linear-gradient(180deg, #f7f8fc 0%, #f3f5f9 100%)",
-          minHeight: "100%",
-          padding: "0",
+          width: "100%",
+          marginBottom: "20px",
         }}
       >
         <div
-          className="pay mt-120"
           style={{
-            backgroundColor: "transparent",
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ lineHeight: 1.2 }}>
+            <h4
+              style={{
+                margin: 0,
+                padding: 0,
+                color: "#1f2937",
+                fontWeight: 700,
+                fontSize: "20px",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              전자결재
+            </h4>
+
+            <div
+              style={{
+                marginTop: "4px",
+                fontSize: "13px",
+                color: "#6b7280",
+                fontWeight: 500,
+              }}
+            >
+              목록
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            width: "100%",
+            backgroundColor: "#ffffff",
+            border: "1px solid #e8ecf4",
+            borderRadius: "14px",
+            overflow: "hidden",
+            boxShadow: "0 6px 18px rgba(15, 23, 42, 0.04)",
           }}
         >
           <div
             style={{
-              marginBottom: "14px",
-              display: "flex",
-              alignItems: "flex-start",
+              padding: "12px 14px",
+              borderBottom: "1px solid #eef2f7",
+              background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
+              fontSize: "14px",
+              fontWeight: 700,
+              color: "#374151",
             }}
           >
-            <div style={{ lineHeight: 1.2 }}>
-              <h4
-                style={{
-                  margin: 0,
-                  padding: 0,
-                  color: "#1f2937",
-                  fontWeight: 700,
-                  fontSize: "24px",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                전자결재
-              </h4>
-
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  fontWeight: 500,
-                }}
-              >
-                목록
-              </div>
-            </div>
+            내 기안문서
           </div>
 
           <div
             style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e8ecf4",
-              borderRadius: "16px",
-              overflow: "hidden",
-              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+              width: "100%",
+              overflowX: "auto",
             }}
           >
             <div
               style={{
-                padding: "16px 18px 10px 18px",
-                borderBottom: "1px solid #eef2f7",
-                background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
-                fontSize: "15px",
-                fontWeight: 700,
-                color: "#374151",
+                minWidth: "720px",
+                maxHeight: "280px",
+                overflowY: "auto",
               }}
             >
-              내 기안문서
-            </div>
-
-            <div style={{ maxHeight: "360px", overflowY: "auto" }}>
-              <Table responsive className="mb-0 align-middle" style={{ marginBottom: 0 }}>
+              <Table
+                responsive
+                className="mb-0 align-middle"
+                style={{
+                  marginBottom: 0,
+                  tableLayout: "fixed",
+                }}
+              >
                 <thead>
                   <tr
                     style={{
@@ -212,76 +228,88 @@ const Pay = () => {
                   >
                     <th
                       style={{
-                        width: "140px",
-                        padding: "15px 18px",
-                        fontSize: "14px",
+                        width: "120px",
+                        padding: "12px 14px",
+                        fontSize: "13px",
                         fontWeight: 700,
                         color: "#475467",
                         borderBottom: "1px solid #e8ecf4",
                         textAlign: "center",
+                        verticalAlign: "middle",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       기안일자
                     </th>
                     <th
                       style={{
-                        padding: "15px 18px",
-                        fontSize: "14px",
+                        minWidth: "180px",
+                        padding: "12px 14px",
+                        fontSize: "13px",
                         fontWeight: 700,
                         color: "#475467",
                         borderBottom: "1px solid #e8ecf4",
+                        verticalAlign: "middle",
                       }}
                     >
                       제목
                     </th>
                     <th
                       style={{
-                        width: "140px",
-                        padding: "15px 18px",
-                        fontSize: "14px",
+                        width: "150px",
+                        padding: "12px 14px",
+                        fontSize: "13px",
                         fontWeight: 700,
                         color: "#475467",
                         borderBottom: "1px solid #e8ecf4",
                         textAlign: "center",
+                        verticalAlign: "middle",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       기안자
                     </th>
                     <th
                       style={{
-                        width: "140px",
-                        padding: "15px 18px",
-                        fontSize: "14px",
+                        width: "150px",
+                        padding: "12px 14px",
+                        fontSize: "13px",
                         fontWeight: 700,
                         color: "#475467",
                         borderBottom: "1px solid #e8ecf4",
                         textAlign: "center",
+                        verticalAlign: "middle",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       결재자
                     </th>
                     <th
                       style={{
-                        width: "120px",
-                        padding: "15px 18px",
-                        fontSize: "14px",
+                        width: "110px",
+                        padding: "12px 14px",
+                        fontSize: "13px",
                         fontWeight: 700,
                         color: "#475467",
                         borderBottom: "1px solid #e8ecf4",
                         textAlign: "center",
+                        verticalAlign: "middle",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       진행상태
                     </th>
                     <th
                       style={{
-                        width: "90px",
-                        padding: "15px 18px",
-                        fontSize: "14px",
+                        width: "80px",
+                        padding: "12px 14px",
+                        fontSize: "13px",
                         fontWeight: 700,
                         color: "#475467",
                         borderBottom: "1px solid #e8ecf4",
                         textAlign: "center",
+                        verticalAlign: "middle",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       보기
@@ -296,9 +324,9 @@ const Pay = () => {
                         colSpan={6}
                         style={{
                           textAlign: "center",
-                          padding: "44px 16px",
+                          padding: "34px 14px",
                           color: "#98a2b3",
-                          fontSize: "14px",
+                          fontSize: "13px",
                         }}
                       >
                         {loading ? "불러오는 중..." : "기안문서가 없습니다"}
@@ -315,9 +343,12 @@ const Pay = () => {
                         <td
                           style={{
                             textAlign: "center",
-                            padding: "14px 18px",
+                            padding: "12px 14px",
                             color: "#374151",
                             borderBottom: "1px solid #eef2f7",
+                            verticalAlign: "middle",
+                            whiteSpace: "nowrap",
+                            fontSize: "13px",
                           }}
                         >
                           {r.draftDate}
@@ -325,11 +356,13 @@ const Pay = () => {
 
                         <td
                           style={{
-                            padding: "14px 18px",
+                            padding: "12px 14px",
                             color: "#111827",
                             fontWeight: 600,
                             borderBottom: "1px solid #eef2f7",
-                            whiteSpace: "pre-line",
+                            verticalAlign: "middle",
+                            wordBreak: "break-word",
+                            fontSize: "13px",
                           }}
                         >
                           {r.title}
@@ -338,9 +371,12 @@ const Pay = () => {
                         <td
                           style={{
                             textAlign: "center",
-                            padding: "14px 18px",
+                            padding: "12px 14px",
                             color: "#374151",
                             borderBottom: "1px solid #eef2f7",
+                            verticalAlign: "middle",
+                            wordBreak: "break-all",
+                            fontSize: "13px",
                           }}
                         >
                           {r.writer}
@@ -349,9 +385,12 @@ const Pay = () => {
                         <td
                           style={{
                             textAlign: "center",
-                            padding: "14px 18px",
+                            padding: "12px 14px",
                             color: "#374151",
                             borderBottom: "1px solid #eef2f7",
+                            verticalAlign: "middle",
+                            wordBreak: "break-all",
+                            fontSize: "13px",
                           }}
                         >
                           {r.approver}
@@ -360,10 +399,13 @@ const Pay = () => {
                         <td
                           style={{
                             textAlign: "center",
-                            padding: "14px 18px",
+                            padding: "12px 14px",
                             color: "#374151",
                             borderBottom: "1px solid #eef2f7",
                             fontWeight: 600,
+                            verticalAlign: "middle",
+                            whiteSpace: "nowrap",
+                            fontSize: "13px",
                           }}
                         >
                           {r.status}
@@ -372,8 +414,9 @@ const Pay = () => {
                         <td
                           style={{
                             textAlign: "center",
-                            padding: "14px 18px",
+                            padding: "12px 14px",
                             borderBottom: "1px solid #eef2f7",
+                            verticalAlign: "middle",
                           }}
                         >
                           <button
@@ -384,10 +427,11 @@ const Pay = () => {
                               color: "#475569",
                               border: "1px solid #dbe2ea",
                               borderRadius: "8px",
-                              padding: "4px 10px",
+                              padding: "5px 10px",
                               fontSize: "12px",
                               fontWeight: 600,
                               cursor: "pointer",
+                              whiteSpace: "nowrap",
                             }}
                           >
                             보기
@@ -405,7 +449,9 @@ const Pay = () => {
             style={{
               display: "flex",
               justifyContent: "flex-end",
-              marginTop: "12px",
+              padding: "10px 14px",
+              borderTop: "1px solid #eef2f7",
+              backgroundColor: "#ffffff",
             }}
           >
             <button
@@ -415,11 +461,12 @@ const Pay = () => {
                 backgroundColor: "#ffffff",
                 color: "#475569",
                 border: "1px solid #dbe2ea",
-                borderRadius: "10px",
-                padding: "10px 14px",
-                fontSize: "14px",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                fontSize: "13px",
                 fontWeight: 600,
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               새로고침
@@ -440,6 +487,7 @@ const Pay = () => {
             style={{
               fontWeight: 700,
               color: "#1f2937",
+              fontSize: "18px",
             }}
           >
             {modalData?.title}
@@ -448,7 +496,7 @@ const Pay = () => {
 
         <Modal.Body
           style={{
-            padding: "20px 22px",
+            padding: "18px 20px",
             backgroundColor: "#ffffff",
           }}
         >
@@ -479,9 +527,10 @@ const Pay = () => {
               whiteSpace: "pre-wrap",
               margin: 0,
               color: "#374151",
-              lineHeight: 1.7,
+              lineHeight: 1.6,
               fontFamily: "inherit",
-              minHeight: "120px",
+              minHeight: "100px",
+              fontSize: "14px",
             }}
           >
             {modalData?.content || "-"}
@@ -500,9 +549,10 @@ const Pay = () => {
               backgroundColor: "#ffffff",
               color: "#475569",
               border: "1px solid #dbe2ea",
-              borderRadius: "10px",
-              padding: "8px 14px",
+              borderRadius: "8px",
+              padding: "8px 12px",
               fontWeight: 600,
+              fontSize: "13px",
             }}
           >
             닫기
