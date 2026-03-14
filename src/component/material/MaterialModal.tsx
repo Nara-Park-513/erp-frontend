@@ -288,7 +288,7 @@ export default function MaterialOrderModal({
           </Button>
         )}
 
-        <Button
+        {/*<Button
           variant="secondary"
           onClick={onClose}
           style={{
@@ -301,7 +301,7 @@ export default function MaterialOrderModal({
           }}
         >
           닫기
-        </Button>
+        </Button>*/}
 
         <Button
           onClick={onSave}
