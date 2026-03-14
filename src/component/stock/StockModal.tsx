@@ -277,7 +277,7 @@ export default function StockModal({
           </Button>
         )}
 
-        <Button
+        {/*<Button
           variant="secondary"
           onClick={onClose}
           style={{
@@ -290,7 +290,7 @@ export default function StockModal({
           }}
         >
           닫기
-        </Button>
+        </Button>*/}
 
         <Button
           onClick={() => {

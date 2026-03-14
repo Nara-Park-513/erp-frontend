@@ -46,7 +46,7 @@ type Props = {
   show: boolean;
   id: number | null;
   onHide: () => void;
-  onChanged: () => void;
+  onChanged: () => void | Promise<void>;
 };
 
 const inputStyle = {
@@ -63,7 +63,7 @@ const readOnlyStyle = {
 };
 
 export default function OrderProgressModal({ show, id, onHide, onChanged }: Props) {
-  const isNew = useMemo(() => !id, [id]);
+  const isNew = useMemo(() => id === null, [id]);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -75,12 +75,21 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
   const [orderName, setOrderName] = useState("");
   const [progressText, setProgressText] = useState("");
 
-  const normalizeDetail = (r: any): OrderProgressDetail => ({
-    id: Number(r?.id ?? r?.orderId ?? 0),
-    orderNo: String(r?.orderNo ?? r?.orderCode ?? r?.no ?? ""),
-    orderName: String(r?.orderName ?? r?.name ?? ""),
+  const normalizeDetail = (
+    r: any,
+    fallback?: Partial<OrderProgressDetail>
+  ): OrderProgressDetail => ({
+    id: Number(r?.id ?? r?.orderId ?? fallback?.id ?? 0),
+    orderNo: String(r?.orderNo ?? r?.orderCode ?? r?.no ?? fallback?.orderNo ?? ""),
+    orderName: String(r?.orderName ?? r?.name ?? fallback?.orderName ?? ""),
     progressText: String(
-      r?.progressText ?? r?.progress ?? r?.stepName ?? r?.statusText ?? r?.status ?? ""
+      r?.progressText ??
+        r?.progress ??
+        r?.stepName ??
+        r?.statusText ??
+        r?.status ??
+        fallback?.progressText ??
+        ""
     ),
   });
 
@@ -91,23 +100,34 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
     setProgressText("");
   };
 
-  const loadDetail = async (targetId: number) => {
+  const loadDetail = async (
+    targetId: number,
+    fallback?: Partial<OrderProgressDetail>
+  ) => {
     setLoading(true);
     try {
       const res = await api.get(API_DETAIL(targetId));
       const data = res.data;
-
       const raw = data?.data ?? data?.item ?? data?.result ?? data;
 
-      const d = normalizeDetail(raw);
+      const d = normalizeDetail(raw, fallback);
       setDetail(d);
       setOrderNo(d.orderNo);
       setOrderName(d.orderName);
       setProgressText(d.progressText);
     } catch (e: any) {
       console.error("상세 조회 실패", e);
-      alert(`상세 조회 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
-      setDetail(null);
+
+      if (fallback) {
+        const safe = normalizeDetail({}, fallback);
+        setDetail(safe);
+        setOrderNo(safe.orderNo);
+        setOrderName(safe.orderName);
+        setProgressText(safe.progressText);
+      } else {
+        alert(`상세 조회 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
+        setDetail(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -116,12 +136,12 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
   useEffect(() => {
     if (!show) return;
 
-    if (!id) {
+    if (id === null) {
       resetForNew();
       return;
     }
 
-    loadDetail(id);
+    loadDetail(id, detail ?? undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, id]);
 
@@ -149,16 +169,27 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
         });
 
         alert("등록 완료");
-        onChanged();
-        onHide();
+        await Promise.resolve(onChanged());
       } else {
+        const currentData: OrderProgressDetail = {
+          id: id!,
+          orderNo: orderNo.trim(),
+          orderName: orderName.trim(),
+          progressText: progressText.trim(),
+        };
+
         await api.put(API_UPDATE(id!), payload, {
           headers: { "Content-Type": "application/json" },
         });
 
+        // 수정 후 화면에서 값 안 사라지게 현재 입력값 유지
+        setDetail(currentData);
+        setOrderNo(currentData.orderNo);
+        setOrderName(currentData.orderName);
+        setProgressText(currentData.progressText);
+
         alert("수정 완료");
-        onChanged();
-        onHide();
+        await Promise.resolve(onChanged());
       }
     } catch (e: any) {
       console.error("저장 실패", e);
@@ -180,7 +211,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
       await api.delete(API_DELETE(targetId));
       alert("삭제 완료");
       onHide();
-      onChanged();
+      await Promise.resolve(onChanged());
     } catch (e: any) {
       console.error("삭제 실패", e);
       alert(`삭제 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
@@ -203,7 +234,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
       contentClassName="border-0 shadow-lg"
     >
       <Modal.Header
-        closeButton
+        closeButton={!isNew}
         style={{
           padding: "20px 24px",
           borderBottom: "1px solid #eef2f7",
@@ -335,36 +366,40 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
           gap: "10px",
         }}
       >
-        <Button
-          onClick={handleClose}
-          disabled={saving || deleting}
-          style={{
-            backgroundColor: "#ffffff",
-            color: "#475569",
-            border: "1px solid #dbe2ea",
-            borderRadius: "10px",
-            padding: "10px 16px",
-            fontWeight: 700,
-          }}
-        >
-          닫기
-        </Button>
+        {isNew && (
+          <Button
+            onClick={handleClose}
+            disabled={saving || deleting}
+            style={{
+              backgroundColor: "#ffffff",
+              color: "#475569",
+              border: "1px solid #dbe2ea",
+              borderRadius: "10px",
+              padding: "10px 16px",
+              fontWeight: 700,
+            }}
+          >
+            닫기
+          </Button>
+        )}
 
-        <Button
-          onClick={handleDelete}
-          disabled={(isNew && !detail?.id) || saving || deleting}
-          title={isNew && !detail?.id ? "신규는 저장(등록) 후 삭제 가능" : ""}
-          style={{
-            backgroundColor: "#ef4444",
-            borderColor: "#ef4444",
-            borderRadius: "10px",
-            padding: "10px 16px",
-            fontWeight: 700,
-            opacity: (isNew && !detail?.id) || saving || deleting ? 0.65 : 1,
-          }}
-        >
-          {deleting ? "삭제중..." : "삭제"}
-        </Button>
+        {!isNew && (
+          <Button
+            onClick={handleDelete}
+            disabled={(isNew && !detail?.id) || saving || deleting}
+            title={isNew && !detail?.id ? "신규는 저장(등록) 후 삭제 가능" : ""}
+            style={{
+              backgroundColor: "#ef4444",
+              borderColor: "#ef4444",
+              borderRadius: "10px",
+              padding: "10px 16px",
+              fontWeight: 700,
+              opacity: (isNew && !detail?.id) || saving || deleting ? 0.65 : 1,
+            }}
+          >
+            {deleting ? "삭제중..." : "삭제"}
+          </Button>
+        )}
 
         <Button
           onClick={handleSave}

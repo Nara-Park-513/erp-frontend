@@ -11,6 +11,9 @@ import { BtnRight } from "../stylesjs/Button.styles";
 // import Lnb from "../include/Lnb";
 
 import InventoryModal, { ItemForm } from "../component/inventory/InventoryModal";
+import InventoryDetailModal, {
+  InventoryDetailForm,
+} from "../component/inventory/InventoryDetailModal";
 
 type SortDirection = "asc" | "desc";
 type SortState = { key: string | null; direction: SortDirection };
@@ -20,6 +23,10 @@ const API_ITEMS = "http://localhost:8888/api/inv/items";
 
 const Inventory = () => {
   const [show, setShow] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [savingDetail, setSavingDetail] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryDetailForm | null>(null);
 
   const columns: ColumnDef[] = [
     { key: "itemCode", label: "품목 코드" },
@@ -83,9 +90,33 @@ const Inventory = () => {
     fetchItems();
   }, []);
 
+  const toItemRequest = (src: ItemForm | InventoryDetailForm) => ({
+    itemCode: src.itemCode,
+    itemName: src.itemName,
+    itemGroup: src.itemGroup,
+    spec: src.spec,
+    specMode: src.specMode,
+    unit: src.unit,
+    barcode: src.barcode,
+    process: src.process,
+    itemType: src.itemType,
+    set: src.isSetYn === "Y",
+    inPrice: src.inPrice,
+    inVatIncluded: src.inVatIncludedYn === "Y",
+    outPrice: src.outPrice,
+    outVatIncluded: src.outVatIncludedYn === "Y",
+    imageUrl: src.image,
+    useYn: src.useYn,
+    extraFields: {},
+  });
+
   const saveItem = async () => {
     try {
-      const payload = { ...item, useYn: true };
+      const payload = toItemRequest({
+        ...item,
+        useYn: true,
+      });
+
       await axios.post(API_ITEMS, payload);
 
       await fetchItems();
@@ -95,6 +126,78 @@ const Inventory = () => {
       console.error("저장 실패", err);
       console.error("❌ 응답:", err?.response?.data);
       alert("저장 실패(콘솔 확인)");
+    }
+  };
+
+  const openDetailModal = (row: any) => {
+    setSelectedItem({
+      id: row?.id,
+      itemCode: row?.itemCode ?? "",
+      itemName: row?.itemName ?? "",
+      itemGroup: row?.itemGroup ?? "",
+      spec: row?.spec ?? "",
+      barcode: row?.barcode ?? "",
+      specMode: row?.specMode ?? "NAME",
+      unit: row?.unit ?? "",
+      process: row?.process ?? "",
+      itemType: row?.itemType ?? "RAW_MATERIAL",
+      isSetYn: row?.isSet ? "Y" : "N",
+      inPrice: Number(row?.inPrice ?? 0),
+      inVatIncludedYn: row?.inVatIncluded ? "Y" : "N",
+      outPrice: Number(row?.outPrice ?? 0),
+      outVatIncludedYn: row?.outVatIncluded ? "Y" : "N",
+      image: row?.imageUrl ?? "",
+      useYn: !!row?.useYn,
+    });
+    setShowDetail(true);
+  };
+
+  const closeDetailModal = () => {
+    setShowDetail(false);
+    setSelectedItem(null);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedItem?.id) {
+      alert("수정할 품목 정보가 없습니다.");
+      return;
+    }
+
+    try {
+      setSavingDetail(true);
+
+      const payload = toItemRequest(selectedItem);
+
+      await axios.put(`${API_ITEMS}/${selectedItem.id}`, payload);
+
+      await fetchItems();
+      closeDetailModal();
+    } catch (err: any) {
+      console.error("수정 실패", err);
+      console.error("❌ 응답:", err?.response?.data);
+      alert("수정 실패(콘솔 확인)");
+    } finally {
+      setSavingDetail(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedItem?.id) {
+      alert("삭제할 품목 정보가 없습니다.");
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await axios.delete(`${API_ITEMS}/${selectedItem.id}`);
+      await fetchItems();
+      closeDetailModal();
+    } catch (err: any) {
+      console.error("삭제 실패", err);
+      console.error("❌ 응답:", err?.response?.data);
+      alert("삭제 실패(콘솔 확인)");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -141,16 +244,12 @@ const Inventory = () => {
     });
   }, [itemList, sort, searchKeyword]);
 
-  // const stockMenu = [{ key: "status", label: "구매조회", path: "/inventory" }];
-
   return (
     <>
       <div className="fixed-top">
         <Header />
         <Top />
       </div>
-
-      {/* <SideBar /> */}
 
       <div
         style={{
@@ -163,9 +262,7 @@ const Inventory = () => {
           <Row>
             <Col>
               <Flex>
-                <Left>
-                  {/* <Lnb menuList={stockMenu} title="구매조회" /> */}
-                </Left>
+                <Left>{/* <Lnb menuList={stockMenu} title="구매조회" /> */}</Left>
 
                 <Right style={{ marginTop: "-20px" }}>
                   <TopWrap />
@@ -404,7 +501,35 @@ const Inventory = () => {
                                     borderBottom: "1px solid #eef2f7",
                                   }}
                                 >
-                                  {it?.[c.key] ?? "-"}
+                                  {c.key === "itemCode" || c.key === "itemName" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => openDetailModal(it)}
+                                      style={{
+                                        background: "none",
+                                        border: "none",
+                                        padding: 0,
+                                        margin: 0,
+                                        color: c.key === "itemCode" ? "#111827" : "#374151",
+                                        fontWeight: c.key === "itemCode" ? 600 : 500,
+                                        cursor: "pointer",
+                                        textDecoration: "none",
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = "#111827";
+                                        e.currentTarget.style.textDecoration = "underline";
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.color =
+                                          c.key === "itemCode" ? "#111827" : "#374151";
+                                        e.currentTarget.style.textDecoration = "none";
+                                      }}
+                                    >
+                                      {it?.[c.key] ?? "-"}
+                                    </button>
+                                  ) : (
+                                    <>{it?.[c.key] ?? "-"}</>
+                                  )}
                                 </td>
                               ))}
                             </tr>
@@ -455,6 +580,17 @@ const Inventory = () => {
         onSave={saveItem}
         item={item}
         setItem={setItem}
+      />
+
+      <InventoryDetailModal
+        show={showDetail}
+        onClose={closeDetailModal}
+        onDelete={handleDelete}
+        onSave={handleUpdate}
+        item={selectedItem}
+        setItem={setSelectedItem}
+        saving={savingDetail}
+        deleting={deleting}
       />
     </>
   );
