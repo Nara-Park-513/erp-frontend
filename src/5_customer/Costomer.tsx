@@ -10,6 +10,7 @@ import { TableTitle } from "../stylesjs/Text.styles";
 import { InputGroup, Search, Radio, Label, MidLabel } from "../stylesjs/Input.styles";
 import { BtnRight } from "../stylesjs/Button.styles";
 // import Lnb from "../include/Lnb";
+import "../Auth.css";
 
 type ColumnDef = {
   key: string;
@@ -48,6 +49,12 @@ const Customer = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [keyword, setKeyword] = useState("");
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
   const columns: ColumnDef[] = [
     { key: "customerCode", label: "거래처코드" },
     { key: "customerName", label: "거래처명" },
@@ -61,6 +68,35 @@ const Customer = () => {
 
   const [customer, setCustomer] = useState<CustomerForm>(emptyCustomer());
   const [customerList, setCustomerList] = useState<CustomerForm[]>([]);
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -126,20 +162,28 @@ const Customer = () => {
       handleClose();
     } catch (e) {
       console.error("저장 실패", e);
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
-  const deleteCustomer = async () => {
+  const confirmDeleteCustomer = async () => {
     if (!selectedId) return;
-    if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
     try {
       await axios.delete(`http://localhost:8888/api/acc/customers/${selectedId}`);
       await fetchCustomers();
       handleClose();
+      closeAlertModal();
     } catch (e) {
       console.error("거래처 삭제 실패", e);
+      closeAlertModal();
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     }
+  };
+
+  const deleteCustomer = async () => {
+    if (!selectedId) return;
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   // const stockMenu = [{ key: "status", label: "거래처리스트", path: "/custom" }];
@@ -407,372 +451,438 @@ const Customer = () => {
       </div>
 
       <Modal
-  show={show}
-  onHide={handleClose}
-  size="lg"
-  centered
-  contentClassName="border-0 shadow-lg"
->
-  <Modal.Header
-    closeButton
-    style={{
-      padding: "20px 24px",
-      borderBottom: "1px solid #eef2f7",
-      background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
-    }}
-  >
-    <Modal.Title
-      style={{
-        fontWeight: 800,
-        color: "#1f2937",
-        fontSize: "28px",
-        letterSpacing: "-0.02em",
-      }}
-    >
-      거래처 등록
-    </Modal.Title>
-  </Modal.Header>
-
-  <Modal.Body
-    style={{
-      backgroundColor: "#f8fafc",
-      padding: "24px",
-    }}
-  >
-    <RoundRect
-      style={{
-        width: "100%",
-        backgroundColor: "#ffffff",
-        border: "1px solid #e8ecf4",
-        borderRadius: "20px",
-        padding: "24px",
-        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gap: "16px",
-        }}
+        show={show}
+        onHide={handleClose}
+        size="lg"
+        centered
+        contentClassName="border-0 shadow-lg"
       >
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              거래처 코드
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={customer.customerCode}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  customerCode: e.target.value,
-                })
-              }
-              style={{
-                height: "44px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              거래처명
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={customer.customerName}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  customerName: e.target.value,
-                })
-              }
-              style={{
-                height: "44px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              대표자명
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={customer.ceoName}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  ceoName: e.target.value,
-                })
-              }
-              style={{
-                height: "44px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              전화번호
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={customer.phone}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  phone: e.target.value,
-                })
-              }
-              style={{
-                height: "44px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              Email
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={customer.email}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  email: e.target.value,
-                })
-              }
-              style={{
-                height: "44px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              주소
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={customer.address}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  address: e.target.value,
-                })
-              }
-              style={{
-                height: "44px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              상세주소
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={customer.detailAddress}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  detailAddress: e.target.value,
-                })
-              }
-              style={{
-                height: "44px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "flex-start", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              적요
-            </MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={customer.remark}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  remark: e.target.value,
-                })
-              }
-              style={{
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                resize: "none",
-                width: "540px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <Flex
+        <Modal.Header
+          closeButton
           style={{
-            alignItems: "center",
-            marginTop: "4px",
+            padding: "20px 24px",
+            borderBottom: "1px solid #eef2f7",
+            background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
           }}
         >
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
-              상/구분
-            </MidLabel>
-          </W30>
-          <W70>
+          <Modal.Title
+            style={{
+              fontWeight: 800,
+              color: "#1f2937",
+              fontSize: "28px",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            거래처 등록
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body
+          style={{
+            backgroundColor: "#f8fafc",
+            padding: "24px",
+          }}
+        >
+          <RoundRect
+            style={{
+              width: "100%",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8ecf4",
+              borderRadius: "20px",
+              padding: "24px",
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
+            }}
+          >
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "18px",
-                flexWrap: "wrap",
+                display: "grid",
+                gap: "16px",
               }}
             >
-              {[
-                ["SALES", "매출처"],
-                ["PURCHASE", "매입처"],
-                ["BOTH", "매입·매출"],
-              ].map(([v, l]) => (
-                <span
-                  key={v}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <Radio
-                    checked={customer.customerType === v}
-                    onChange={() =>
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    거래처 코드
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    value={customer.customerCode}
+                    onChange={(e) =>
                       setCustomer({
                         ...customer,
-                        customerType: v as CustomerType,
+                        customerCode: e.target.value,
                       })
                     }
+                    style={{
+                      height: "44px",
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      width: "540px",
+                    }}
                   />
-                  <Label
-                    className="mx-2"
-                    style={{ marginBottom: 0, color: "#374151", fontWeight: 500 }}
+                </W70>
+              </InputGroup>
+
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    거래처명
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    value={customer.customerName}
+                    onChange={(e) =>
+                      setCustomer({
+                        ...customer,
+                        customerName: e.target.value,
+                      })
+                    }
+                    style={{
+                      height: "44px",
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      width: "540px",
+                    }}
+                  />
+                </W70>
+              </InputGroup>
+
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    대표자명
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    value={customer.ceoName}
+                    onChange={(e) =>
+                      setCustomer({
+                        ...customer,
+                        ceoName: e.target.value,
+                      })
+                    }
+                    style={{
+                      height: "44px",
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      width: "540px",
+                    }}
+                  />
+                </W70>
+              </InputGroup>
+
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    전화번호
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    value={customer.phone}
+                    onChange={(e) =>
+                      setCustomer({
+                        ...customer,
+                        phone: e.target.value,
+                      })
+                    }
+                    style={{
+                      height: "44px",
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      width: "540px",
+                    }}
+                  />
+                </W70>
+              </InputGroup>
+
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    Email
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    value={customer.email}
+                    onChange={(e) =>
+                      setCustomer({
+                        ...customer,
+                        email: e.target.value,
+                      })
+                    }
+                    style={{
+                      height: "44px",
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      width: "540px",
+                    }}
+                  />
+                </W70>
+              </InputGroup>
+
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    주소
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    value={customer.address}
+                    onChange={(e) =>
+                      setCustomer({
+                        ...customer,
+                        address: e.target.value,
+                      })
+                    }
+                    style={{
+                      height: "44px",
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      width: "540px",
+                    }}
+                  />
+                </W70>
+              </InputGroup>
+
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    상세주소
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    value={customer.detailAddress}
+                    onChange={(e) =>
+                      setCustomer({
+                        ...customer,
+                        detailAddress: e.target.value,
+                      })
+                    }
+                    style={{
+                      height: "44px",
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      width: "540px",
+                    }}
+                  />
+                </W70>
+              </InputGroup>
+
+              <InputGroup style={{ alignItems: "flex-start", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    적요
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    value={customer.remark}
+                    onChange={(e) =>
+                      setCustomer({
+                        ...customer,
+                        remark: e.target.value,
+                      })
+                    }
+                    style={{
+                      borderRadius: "12px",
+                      borderColor: "#dbe2ea",
+                      boxShadow: "none",
+                      resize: "none",
+                      width: "540px",
+                    }}
+                  />
+                </W70>
+              </InputGroup>
+
+              <Flex
+                style={{
+                  alignItems: "center",
+                  marginTop: "4px",
+                }}
+              >
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>
+                    상/구분
+                  </MidLabel>
+                </W30>
+                <W70>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "18px",
+                      flexWrap: "wrap",
+                    }}
                   >
-                    {l}
-                  </Label>
-                </span>
-              ))}
+                    {[
+                      ["SALES", "매출처"],
+                      ["PURCHASE", "매입처"],
+                      ["BOTH", "매입·매출"],
+                    ].map(([v, l]) => (
+                      <span
+                        key={v}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Radio
+                          checked={customer.customerType === v}
+                          onChange={() =>
+                            setCustomer({
+                              ...customer,
+                              customerType: v as CustomerType,
+                            })
+                          }
+                        />
+                        <Label
+                          className="mx-2"
+                          style={{ marginBottom: 0, color: "#374151", fontWeight: 500 }}
+                        >
+                          {l}
+                        </Label>
+                      </span>
+                    ))}
+                  </div>
+                </W70>
+              </Flex>
             </div>
-          </W70>
-        </Flex>
-      </div>
-    </RoundRect>
-  </Modal.Body>
+          </RoundRect>
+        </Modal.Body>
 
-  <Modal.Footer
-    style={{
-      padding: "18px 24px",
-      borderTop: "1px solid #eef2f7",
-      backgroundColor: "#ffffff",
-      gap: "10px",
-    }}
-  >
-    <Button
-      onClick={handleClose}
-      style={{
-        backgroundColor: "#ffffff",
-        color: "#475569",
-        border: "1px solid #dbe2ea",
-        borderRadius: "10px",
-        padding: "10px 16px",
-        fontWeight: 700,
-      }}
-    >
-      닫기
-    </Button>
+        <Modal.Footer
+          style={{
+            padding: "18px 24px",
+            borderTop: "1px solid #eef2f7",
+            backgroundColor: "#ffffff",
+            gap: "10px",
+          }}
+        >
+          {/*<Button
+            onClick={handleClose}
+            style={{
+              backgroundColor: "#ffffff",
+              color: "#475569",
+              border: "1px solid #dbe2ea",
+              borderRadius: "10px",
+              padding: "10px 16px",
+              fontWeight: 700,
+            }}
+          >
+            닫기
+          </Button>*/}
 
-    {selectedId && (
-      <Button
-        onClick={deleteCustomer}
-        style={{
-          backgroundColor: "#ef4444",
-          borderColor: "#ef4444",
-          borderRadius: "10px",
-          padding: "10px 16px",
-          fontWeight: 700,
-        }}
+          {selectedId && (
+            <Button
+              onClick={deleteCustomer}
+              style={{
+                backgroundColor: "#ef4444",
+                borderColor: "#ef4444",
+                borderRadius: "10px",
+                padding: "10px 16px",
+                fontWeight: 700,
+              }}
+            >
+              삭제
+            </Button>
+          )}
+
+          <Button
+            onClick={saveCustomer}
+            style={{
+              backgroundColor: "#6b7280",
+              borderColor: "#6b7280",
+              borderRadius: "10px",
+              padding: "10px 18px",
+              fontWeight: 700,
+            }}
+          >
+            {selectedId ? "수정" : "저장"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
       >
-        삭제
-      </Button>
-    )}
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
 
-    <Button
-      onClick={saveCustomer}
-      style={{
-        backgroundColor: "#6b7280",
-        borderColor: "#6b7280",
-        borderRadius: "10px",
-        padding: "10px 18px",
-        fontWeight: 700,
-      }}
-    >
-      {selectedId ? "수정" : "저장"}
-    </Button>
-  </Modal.Footer>
-</Modal>
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                  }}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteCustomer}
+                  className={`top-alert-button ${alertType}`}
+                >
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

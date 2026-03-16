@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Table } from "react-bootstrap";
+import { Container, Row, Col, Table, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
@@ -11,6 +11,7 @@ import MaterialModal, {
   MaterialOrderLine,
   Customer,
 } from "../component/material/MaterialModal";
+import "../Auth.css";
 
 const api = axios.create({
   baseURL: "http://localhost:8888",
@@ -100,6 +101,12 @@ export default function MaterialManagement() {
   const [materialOrderList, setMaterialOrderList] = useState<MaterialOrder[]>([]);
   const [materialOrder, setMaterialOrder] = useState<MaterialOrder>(emptyMaterialOrder());
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
   const totalAmount = useMemo(
     () =>
       (materialOrder.lines || []).reduce(
@@ -108,6 +115,35 @@ export default function MaterialManagement() {
       ),
     [materialOrder.lines]
   );
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
 
   const fetchMaterialOrders = async (customers: Customer[] = []) => {
     try {
@@ -284,16 +320,27 @@ export default function MaterialManagement() {
 
   const saveMaterialOrder = async () => {
     try {
-      if (!materialOrder.orderDate) return alert("발주일자를 입력하세요");
+      if (!materialOrder.orderDate) {
+        openAlertModal("warning", "입력 확인", "발주일자를 입력해 주세요.");
+        return;
+      }
+
       if (!materialOrder.lines || materialOrder.lines.length === 0) {
-        return alert("자재목록을 입력하세요");
+        openAlertModal("warning", "입력 확인", "자재목록을 입력해 주세요.");
+        return;
       }
 
       const customerId = materialOrder.customerId;
-      if (!customerId) return alert("공급업체를 선택하세요");
+      if (!customerId) {
+        openAlertModal("warning", "입력 확인", "공급업체를 선택해 주세요.");
+        return;
+      }
 
       for (const [i, line] of materialOrder.lines.entries()) {
-        if (!line.itemName?.trim()) return alert(`라인 ${i + 1}: 자재명을 입력하세요`);
+        if (!line.itemName?.trim()) {
+          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 자재명을 입력해 주세요.`);
+          return;
+        }
       }
 
       const orderNo =
@@ -325,22 +372,28 @@ export default function MaterialManagement() {
       handleClose();
     } catch (e) {
       console.error("저장 실패", e);
-      alert("저장 실패 (콘솔 확인)");
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
-  const deleteMaterialOrder = async () => {
+  const confirmDeleteMaterialOrder = async () => {
     if (!selectedId) return;
-    if (!window.confirm("삭제하시겠습니까?")) return;
 
     try {
       await api.delete(`${API_BASE}/${selectedId}`);
       await fetchMaterialOrders(customerList);
       handleClose();
+      closeAlertModal();
     } catch (e) {
       console.error("발주 삭제 실패", e);
-      alert("삭제 실패 (콘솔 확인)");
+      closeAlertModal();
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     }
+  };
+
+  const deleteMaterialOrder = async () => {
+    if (!selectedId) return;
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   return (
@@ -620,6 +673,72 @@ export default function MaterialManagement() {
         onDelete={deleteMaterialOrder}
         customerList={customerList}
       />
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                  }}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteMaterialOrder}
+                  className={`top-alert-button ${alertType}`}
+                >
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }

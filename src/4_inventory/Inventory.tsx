@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Container, Row, Col, Table, Button } from "react-bootstrap";
+import { Container, Row, Col, Table, Button, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 // import SideBar from "../include/SideBar";
@@ -14,6 +14,7 @@ import InventoryModal, { ItemForm } from "../component/inventory/InventoryModal"
 import InventoryDetailModal, {
   InventoryDetailForm,
 } from "../component/inventory/InventoryDetailModal";
+import "../Auth.css";
 
 type SortDirection = "asc" | "desc";
 type SortState = { key: string | null; direction: SortDirection };
@@ -27,6 +28,26 @@ const Inventory = () => {
   const [deleting, setDeleting] = useState(false);
   const [savingDetail, setSavingDetail] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryDetailForm | null>(null);
+
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+  };
 
   const columns: ColumnDef[] = [
     { key: "itemCode", label: "품목 코드" },
@@ -125,7 +146,7 @@ const Inventory = () => {
     } catch (err: any) {
       console.error("저장 실패", err);
       console.error("❌ 응답:", err?.response?.data);
-      alert("저장 실패(콘솔 확인)");
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
@@ -159,7 +180,7 @@ const Inventory = () => {
 
   const handleUpdate = async () => {
     if (!selectedItem?.id) {
-      alert("수정할 품목 정보가 없습니다.");
+      openAlertModal("warning", "수정 불가", "수정할 품목 정보가 없습니다.");
       return;
     }
 
@@ -175,7 +196,7 @@ const Inventory = () => {
     } catch (err: any) {
       console.error("수정 실패", err);
       console.error("❌ 응답:", err?.response?.data);
-      alert("수정 실패(콘솔 확인)");
+      openAlertModal("error", "수정 실패", "수정에 실패했습니다. 콘솔을 확인해 주세요.");
     } finally {
       setSavingDetail(false);
     }
@@ -183,7 +204,7 @@ const Inventory = () => {
 
   const handleDelete = async () => {
     if (!selectedItem?.id) {
-      alert("삭제할 품목 정보가 없습니다.");
+      openAlertModal("warning", "삭제 불가", "삭제할 품목 정보가 없습니다.");
       return;
     }
 
@@ -195,7 +216,7 @@ const Inventory = () => {
     } catch (err: any) {
       console.error("삭제 실패", err);
       console.error("❌ 응답:", err?.response?.data);
-      alert("삭제 실패(콘솔 확인)");
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     } finally {
       setDeleting(false);
     }
@@ -592,6 +613,39 @@ const Inventory = () => {
         saving={savingDetail}
         deleting={deleting}
       />
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div className="top-alert-right">
+            <button
+              type="button"
+              onClick={closeAlertModal}
+              className={`top-alert-button ${alertType}`}
+            >
+              확인
+            </button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

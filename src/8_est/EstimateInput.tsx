@@ -24,6 +24,7 @@ import { TableTitle } from "../stylesjs/Text.styles";
 import { InputGroup, MidLabel } from "../stylesjs/Input.styles";
 import { BtnRight } from "../stylesjs/Button.styles";
 // import Lnb from "../include/Lnb";
+import "../Auth.css";
 
 /* =========================
    타입
@@ -70,10 +71,45 @@ const EstimateInput = () => {
   const [estimate, setEstimate] = useState<Estimate>(emptyEstimate());
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
   const totalAmount = useMemo(
     () => estimate.lines.reduce((s, l) => s + l.amount, 0),
     [estimate.lines]
   );
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
 
   const fetchEstimates = async () => {
     try {
@@ -152,12 +188,12 @@ const EstimateInput = () => {
 
   const saveEstimate = async () => {
     if (!estimate.customerName.trim()) {
-      alert("거래처를 입력하세요");
+      openAlertModal("warning", "입력 확인", "거래처를 입력해 주세요.");
       return;
     }
 
     if (estimate.lines.length === 0) {
-      alert("라인을 입력하세요");
+      openAlertModal("warning", "입력 확인", "라인을 입력해 주세요.");
       return;
     }
 
@@ -174,17 +210,24 @@ const EstimateInput = () => {
     }
   };
 
-  const deleteEstimate = async () => {
+  const confirmDeleteEstimate = async () => {
     if (!selectedId) return;
-    if (!window.confirm("삭제하시겠습니까?")) return;
 
     try {
       await axios.delete(`${API_BASE}/${selectedId}`);
       await fetchEstimates();
       setShow(false);
+      closeAlertModal();
     } catch (e) {
       console.error("삭제 실패", e);
+      closeAlertModal();
     }
+  };
+
+  const deleteEstimate = async () => {
+    if (!selectedId) return;
+
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   // const stockMenu = [{ key: "status", label: "견적서 입력", path: "/est" }];
@@ -427,336 +470,425 @@ const EstimateInput = () => {
       </div>
 
       <Modal
-  show={show}
-  onHide={() => setShow(false)}
-  size="xl"
-  centered
-  contentClassName="border-0 shadow-lg"
->
-  <Modal.Header
-    closeButton
-    style={{
-      padding: "20px 24px",
-      borderBottom: "1px solid #eef2f7",
-      background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
-    }}
-  >
-    <Modal.Title
-      style={{
-        fontWeight: 800,
-        color: "#1f2937",
-        fontSize: "28px",
-        letterSpacing: "-0.02em",
-      }}
-    >
-      견적서 {selectedId ? "수정" : "등록"}
-    </Modal.Title>
-  </Modal.Header>
-
-  <Modal.Body
-    style={{
-      backgroundColor: "#f8fafc",
-      padding: "24px",
-    }}
-  >
-    <div
-      style={{
-        backgroundColor: "#ffffff",
-        border: "1px solid #e8ecf4",
-        borderRadius: "20px",
-        padding: "24px",
-        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gap: "16px",
-          marginBottom: "20px",
-        }}
+        show={show}
+        onHide={() => setShow(false)}
+        size="xl"
+        centered
+        contentClassName="border-0 shadow-lg"
       >
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>견적번호</MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={estimate.estimateNo}
-              onChange={(e) =>
-                setEstimate((p) => ({ ...p, estimateNo: e.target.value }))
-              }
-              style={{
-                height: "46px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "795px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>견적일자</MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              type="date"
-              value={estimate.estimateDate}
-              onChange={(e) =>
-                setEstimate((p) => ({ ...p, estimateDate: e.target.value }))
-              }
-              style={{
-                height: "46px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "795px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-
-        <InputGroup style={{ alignItems: "center", margin: 0 }}>
-          <W30>
-            <MidLabel style={{ color: "#475467", fontWeight: 700 }}>거래처</MidLabel>
-          </W30>
-          <W70>
-            <Form.Control
-              value={estimate.customerName}
-              onChange={(e) =>
-                setEstimate((p) => ({
-                  ...p,
-                  customerName: e.target.value,
-                }))
-              }
-              style={{
-                height: "46px",
-                borderRadius: "12px",
-                borderColor: "#dbe2ea",
-                boxShadow: "none",
-                width: "795px",
-              }}
-            />
-          </W70>
-        </InputGroup>
-      </div>
-
-      <div
-        style={{
-          marginBottom: "14px",
-          paddingTop: "18px",
-          borderTop: "1px solid #eef2f7",
-          fontSize: "15px",
-          fontWeight: 700,
-          color: "#374151",
-        }}
-      >
-        품목 정보
-      </div>
-
-      <div
-        style={{
-          border: "1px solid #e8ecf4",
-          borderRadius: "16px",
-          overflow: "hidden",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <Table
-          bordered
-          responsive
-          className="mb-0 align-middle"
+        <Modal.Header
+          closeButton
           style={{
-            marginBottom: 0,
-            borderColor: "#e8ecf4",
+            padding: "20px 24px",
+            borderBottom: "1px solid #eef2f7",
+            background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
           }}
         >
-          <thead
+          <Modal.Title
             style={{
-              background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+              fontWeight: 800,
+              color: "#1f2937",
+              fontSize: "28px",
+              letterSpacing: "-0.02em",
             }}
           >
-            <tr>
-              <th style={{ padding: "14px 16px", fontWeight: 700, color: "#475467" }}>품목</th>
-              <th style={{ width: 120, padding: "14px 16px", fontWeight: 700, color: "#475467" }}>
-                수량
-              </th>
-              <th style={{ width: 150, padding: "14px 16px", fontWeight: 700, color: "#475467" }}>
-                단가
-              </th>
-              <th style={{ width: 150, padding: "14px 16px", fontWeight: 700, color: "#475467" }}>
-                금액
-              </th>
-              <th style={{ width: 100, padding: "14px 16px" }}></th>
-            </tr>
-          </thead>
+            견적서 {selectedId ? "수정" : "등록"}
+          </Modal.Title>
+        </Modal.Header>
 
-          <tbody>
-            {estimate.lines.map((l, idx) => (
-              <tr key={idx}>
-                <td style={{ padding: "10px" }}>
+        <Modal.Body
+          style={{
+            backgroundColor: "#f8fafc",
+            padding: "24px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8ecf4",
+              borderRadius: "20px",
+              padding: "24px",
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gap: "16px",
+                marginBottom: "20px",
+              }}
+            >
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>견적번호</MidLabel>
+                </W30>
+                <W70>
                   <Form.Control
-                    value={l.itemName}
+                    value={estimate.estimateNo}
                     onChange={(e) =>
-                      updateLine(idx, { itemName: e.target.value })
+                      setEstimate((p) => ({ ...p, estimateNo: e.target.value }))
                     }
                     style={{
-                      height: "42px",
-                      borderRadius: "10px",
+                      height: "46px",
+                      borderRadius: "12px",
                       borderColor: "#dbe2ea",
                       boxShadow: "none",
+                      width: "795px",
                     }}
                   />
-                </td>
+                </W70>
+              </InputGroup>
 
-                <td style={{ padding: "10px" }}>
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>견적일자</MidLabel>
+                </W30>
+                <W70>
                   <Form.Control
-                    type="number"
-                    value={l.qty}
+                    type="date"
+                    value={estimate.estimateDate}
                     onChange={(e) =>
-                      updateLine(idx, { qty: Number(e.target.value) })
+                      setEstimate((p) => ({ ...p, estimateDate: e.target.value }))
                     }
                     style={{
-                      height: "42px",
-                      borderRadius: "10px",
+                      height: "46px",
+                      borderRadius: "12px",
                       borderColor: "#dbe2ea",
                       boxShadow: "none",
+                      width: "795px",
                     }}
                   />
-                </td>
+                </W70>
+              </InputGroup>
 
-                <td style={{ padding: "10px" }}>
+              <InputGroup style={{ alignItems: "center", margin: 0 }}>
+                <W30>
+                  <MidLabel style={{ color: "#475467", fontWeight: 700 }}>거래처</MidLabel>
+                </W30>
+                <W70>
                   <Form.Control
-                    type="number"
-                    value={l.price}
+                    value={estimate.customerName}
                     onChange={(e) =>
-                      updateLine(idx, { price: Number(e.target.value) })
+                      setEstimate((p) => ({
+                        ...p,
+                        customerName: e.target.value,
+                      }))
                     }
                     style={{
-                      height: "42px",
-                      borderRadius: "10px",
+                      height: "46px",
+                      borderRadius: "12px",
                       borderColor: "#dbe2ea",
                       boxShadow: "none",
+                      width: "795px",
                     }}
                   />
-                </td>
+                </W70>
+              </InputGroup>
+            </div>
 
-                <td
-                  className="text-end"
+            <div
+              style={{
+                marginBottom: "14px",
+                paddingTop: "18px",
+                borderTop: "1px solid #eef2f7",
+                fontSize: "15px",
+                fontWeight: 700,
+                color: "#374151",
+              }}
+            >
+              품목 정보
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #e8ecf4",
+                borderRadius: "16px",
+                overflow: "hidden",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              <Table
+                bordered
+                responsive
+                className="mb-0 align-middle"
+                style={{
+                  marginBottom: 0,
+                  borderColor: "#e8ecf4",
+                }}
+              >
+                <thead
                   style={{
-                    verticalAlign: "middle",
+                    background: "linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%)",
+                  }}
+                >
+                  <tr>
+                    <th style={{ padding: "14px 16px", fontWeight: 700, color: "#475467" }}>
+                      품목
+                    </th>
+                    <th
+                      style={{
+                        width: 120,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                      }}
+                    >
+                      수량
+                    </th>
+                    <th
+                      style={{
+                        width: 150,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                      }}
+                    >
+                      단가
+                    </th>
+                    <th
+                      style={{
+                        width: 150,
+                        padding: "14px 16px",
+                        fontWeight: 700,
+                        color: "#475467",
+                      }}
+                    >
+                      금액
+                    </th>
+                    <th style={{ width: 100, padding: "14px 16px" }}></th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {estimate.lines.map((l, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding: "10px" }}>
+                        <Form.Control
+                          value={l.itemName}
+                          onChange={(e) =>
+                            updateLine(idx, { itemName: e.target.value })
+                          }
+                          style={{
+                            height: "42px",
+                            borderRadius: "10px",
+                            borderColor: "#dbe2ea",
+                            boxShadow: "none",
+                          }}
+                        />
+                      </td>
+
+                      <td style={{ padding: "10px" }}>
+                        <Form.Control
+                          type="number"
+                          value={l.qty}
+                          onChange={(e) =>
+                            updateLine(idx, { qty: Number(e.target.value) })
+                          }
+                          style={{
+                            height: "42px",
+                            borderRadius: "10px",
+                            borderColor: "#dbe2ea",
+                            boxShadow: "none",
+                          }}
+                        />
+                      </td>
+
+                      <td style={{ padding: "10px" }}>
+                        <Form.Control
+                          type="number"
+                          value={l.price}
+                          onChange={(e) =>
+                            updateLine(idx, { price: Number(e.target.value) })
+                          }
+                          style={{
+                            height: "42px",
+                            borderRadius: "10px",
+                            borderColor: "#dbe2ea",
+                            boxShadow: "none",
+                          }}
+                        />
+                      </td>
+
+                      <td
+                        className="text-end"
+                        style={{
+                          verticalAlign: "middle",
+                          fontWeight: 700,
+                          color: "#111827",
+                          padding: "10px 16px",
+                        }}
+                      >
+                        {l.amount.toLocaleString()}
+                      </td>
+
+                      <td
+                        className="text-end"
+                        style={{
+                          verticalAlign: "middle",
+                          padding: "10px",
+                        }}
+                      >
+                        <Button
+                          size="sm"
+                          variant="outline-danger"
+                          onClick={() => removeLine(idx)}
+                          style={{
+                            borderRadius: "10px",
+                            padding: "8px 12px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          삭제
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "16px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                size="sm"
+                onClick={addLine}
+                style={{
+                  backgroundColor: "#eef2f7",
+                  border: "1px solid #dbe2ea",
+                  color: "#475569",
+                  borderRadius: "10px",
+                  padding: "9px 14px",
+                  fontWeight: 700,
+                }}
+              >
+                라인 추가
+              </Button>
+
+              <div
+                style={{
+                  textAlign: "right",
+                  fontWeight: 800,
+                  color: "#111827",
+                  fontSize: "18px",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                합계금액 : {totalAmount.toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </Modal.Body>
+
+        <Modal.Footer
+          style={{
+            padding: "18px 24px",
+            borderTop: "1px solid #eef2f7",
+            backgroundColor: "#ffffff",
+            gap: "10px",
+          }}
+        >
+          {selectedId && (
+            <Button
+              variant="danger"
+              onClick={deleteEstimate}
+              style={{
+                borderRadius: "10px",
+                padding: "10px 16px",
+                fontWeight: 700,
+              }}
+            >
+              삭제
+            </Button>
+          )}
+
+          <Button
+            onClick={saveEstimate}
+            style={{
+              backgroundColor: "#6b7280",
+              borderColor: "#6b7280",
+              borderRadius: "10px",
+              padding: "10px 18px",
+              fontWeight: 700,
+            }}
+          >
+            {selectedId ? "수정" : "저장"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
                     fontWeight: 700,
-                    color: "#111827",
-                    padding: "10px 16px",
                   }}
                 >
-                  {l.amount.toLocaleString()}
-                </td>
+                  취소
+                </button>
 
-                <td
-                  className="text-end"
-                  style={{
-                    verticalAlign: "middle",
-                    padding: "10px",
-                  }}
+                <button
+                  type="button"
+                  onClick={confirmDeleteEstimate}
+                  className={`top-alert-button ${alertType}`}
                 >
-                  <Button
-                    size="sm"
-                    variant="outline-danger"
-                    onClick={() => removeLine(idx)}
-                    style={{
-                      borderRadius: "10px",
-                      padding: "8px 12px",
-                      fontWeight: 600,
-                    }}
-                  >
-                    삭제
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "16px",
-          gap: "12px",
-          flexWrap: "wrap",
-        }}
-      >
-        <Button
-          size="sm"
-          onClick={addLine}
-          style={{
-            backgroundColor: "#eef2f7",
-            border: "1px solid #dbe2ea",
-            color: "#475569",
-            borderRadius: "10px",
-            padding: "9px 14px",
-            fontWeight: 700,
-          }}
-        >
-          라인 추가
-        </Button>
-
-        <div
-          style={{
-            textAlign: "right",
-            fontWeight: 800,
-            color: "#111827",
-            fontSize: "18px",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          합계금액 : {totalAmount.toLocaleString()}
-        </div>
-      </div>
-    </div>
-  </Modal.Body>
-
-  <Modal.Footer
-    style={{
-      padding: "18px 24px",
-      borderTop: "1px solid #eef2f7",
-      backgroundColor: "#ffffff",
-      gap: "10px",
-    }}
-  >
-    {selectedId && (
-      <Button
-        variant="danger"
-        onClick={deleteEstimate}
-        style={{
-          borderRadius: "10px",
-          padding: "10px 16px",
-          fontWeight: 700,
-        }}
-      >
-        삭제
-      </Button>
-    )}
-
-    <Button
-      onClick={saveEstimate}
-      style={{
-        backgroundColor: "#6b7280",
-        borderColor: "#6b7280",
-        borderRadius: "10px",
-        padding: "10px 18px",
-        fontWeight: 700,
-      }}
-    >
-      {selectedId ? "수정" : "저장"}
-    </Button>
-  </Modal.Footer>
-</Modal>
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

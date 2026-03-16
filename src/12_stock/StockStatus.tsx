@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Table } from "react-bootstrap";
+import { Container, Row, Col, Table, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 // import SideBar from "../include/SideBar";
@@ -11,6 +11,7 @@ import { BtnRight } from "../stylesjs/Button.styles";
 // import Lnb from "../include/Lnb";
 
 import StockModal, { StockForm } from "../component/stock/StockModal";
+import "../Auth.css";
 
 /* =========================
    타입 정의
@@ -49,6 +50,12 @@ const StockStatus = () => {
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
   const emptyForm = (): StockForm => ({
     id: undefined,
     itemId: null,
@@ -65,6 +72,35 @@ const StockStatus = () => {
     const totalAmount = stockList.reduce((s, i) => s + n(i.totalAmount), 0);
     return { totalQty, totalAmount };
   }, [stockList]);
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
 
   const fetchItems = async () => {
     try {
@@ -135,7 +171,7 @@ const StockStatus = () => {
       setStockList(list);
     } catch (e: any) {
       console.error("❌ 재고조회 실패", e?.response?.status, e?.response?.data);
-      alert(`재고조회 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
+      openAlertModal("error", "조회 실패", "재고조회에 실패했습니다. 콘솔을 확인해 주세요.");
       setStockList([]);
     }
   };
@@ -193,11 +229,17 @@ const StockStatus = () => {
       safetyQty: 0,
     };
 
-    if (!payload.itemId) return alert("품목을 선택해 주세요 (itemId 필수)");
+    if (!payload.itemId) {
+      openAlertModal("warning", "입력 확인", "품목을 선택해 주세요.");
+      return;
+    }
 
     if (mode === "create") {
       const exists = stockList.some((s) => s.itemId === payload.itemId);
-      if (exists) return alert("이미 재고가 등록된 품목입니다. 수정으로 처리하세요.");
+      if (exists) {
+        openAlertModal("warning", "중복 확인", "이미 재고가 등록된 품목입니다. 수정으로 처리해 주세요.");
+        return;
+      }
     }
 
     try {
@@ -211,22 +253,28 @@ const StockStatus = () => {
       closeModal();
     } catch (e: any) {
       console.error("❌ 재고 저장 실패", e?.response?.status, e?.response?.data);
-      alert("저장 실패(콘솔확인)");
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
-  const deleteStock = async () => {
+  const confirmDeleteStock = async () => {
     if (!selectedId) return;
-    if (!window.confirm("정말 삭제 하시겠습니까")) return;
 
     try {
       await axios.delete(`${API_STOCK}/${selectedId}`);
       await fetchStock();
       closeModal();
+      closeAlertModal();
     } catch (e: any) {
       console.error("❌ 재고 삭제 실패", e?.response?.status, e?.response?.data);
-      alert("삭제 실패(콘솔 확인)");
+      closeAlertModal();
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     }
+  };
+
+  const deleteStock = async () => {
+    if (!selectedId) return;
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   return (
@@ -300,57 +348,57 @@ const StockStatus = () => {
                     }}
                   >
                     <div
-  style={{
-    width: "100%",
-    display: "flex",
-    justifyContent: "flex-end",
-  }}
->
-  <InputGroup
-    style={{
-      display: "flex",
-      gap: "10px",
-      alignItems: "center",
-      flexWrap: "nowrap",
-    }}
-  >
-    <Search
-      type="search"
-      placeholder="품목코드/품목명 검색"
-      value={keyword}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        setKeyword(e.target.value)
-      }
-      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") fetchStock();
-      }}
-      style={{
-        width: "280px",
-        borderRadius: "10px",
-        border: "1px solid #dbe2ea",
-        padding: "10px 12px",
-      }}
-    />
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <InputGroup
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                          alignItems: "center",
+                          flexWrap: "nowrap",
+                        }}
+                      >
+                        <Search
+                          type="search"
+                          placeholder="품목코드/품목명 검색"
+                          value={keyword}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setKeyword(e.target.value)
+                          }
+                          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                            if (e.key === "Enter") fetchStock();
+                          }}
+                          style={{
+                            width: "280px",
+                            borderRadius: "10px",
+                            border: "1px solid #dbe2ea",
+                            padding: "10px 12px",
+                          }}
+                        />
 
-    <button
-      type="button"
-      onClick={fetchStock}
-      style={{
-        backgroundColor: "#ffffff",
-        color: "#475569",
-        border: "1px solid #dbe2ea",
-        borderRadius: "10px",
-        padding: "10px 14px",
-        fontSize: "14px",
-        fontWeight: 600,
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-      }}
-    >
-      조회
-    </button>
-  </InputGroup>
-</div>
+                        <button
+                          type="button"
+                          onClick={fetchStock}
+                          style={{
+                            backgroundColor: "#ffffff",
+                            color: "#475569",
+                            border: "1px solid #dbe2ea",
+                            borderRadius: "10px",
+                            padding: "10px 14px",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          조회
+                        </button>
+                      </InputGroup>
+                    </div>
                   </div>
 
                   <div
@@ -622,6 +670,72 @@ const StockStatus = () => {
         onSave={saveStock}
         onDelete={mode === "edit" ? deleteStock : undefined}
       />
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                  }}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteStock}
+                  className={`top-alert-button ${alertType}`}
+                >
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

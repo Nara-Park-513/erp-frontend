@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Table } from "react-bootstrap";
+import { Container, Row, Col, Table, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 // import SideBar from "../include/SideBar";
@@ -14,6 +14,7 @@ import GeneralJournalModal, {
   Journal,
   JournalLine,
 } from "../component/journal/GeneralJournalModal";
+import "../Auth.css";
 
 const api = axios.create({
   baseURL: "http://localhost:8888",
@@ -129,6 +130,12 @@ export default function GeneralJournal() {
   const [journalList, setJournalList] = useState<any[]>([]);
   const [journal, setJournal] = useState<Journal>(emptyJournal());
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
   const columns: ColumnDef[] = [
     { key: "journalNo", label: "전표번호" },
     { key: "journalDate", label: "전표일자" },
@@ -138,6 +145,35 @@ export default function GeneralJournal() {
     { key: "creditTotal", label: "대변합" },
     { key: "status", label: "상태" },
   ];
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -255,13 +291,19 @@ export default function GeneralJournal() {
 
   const saveJournal = async () => {
     try {
-      if (!journal.journalDate) return alert("전표일자를 입력하세요");
+      if (!journal.journalDate) {
+        openAlertModal("warning", "입력 확인", "전표일자를 입력해 주세요.");
+        return;
+      }
+
       if (!journal.lines || journal.lines.length === 0) {
-        return alert("전표 라인을 1개 이상 입력하세요");
+        openAlertModal("warning", "입력 확인", "전표 라인을 1개 이상 입력해 주세요.");
+        return;
       }
 
       if (!journal.customerId) {
-        return alert("거래처를 선택하세요");
+        openAlertModal("warning", "입력 확인", "거래처를 선택해 주세요.");
+        return;
       }
 
       const codes = new Map<string, Set<string>>();
@@ -274,41 +316,49 @@ export default function GeneralJournal() {
 
       for (const [code, set] of codes.entries()) {
         if (set.has("DEBIT") && set.has("CREDIT")) {
-          return alert(
-            `같은 계정코드(${code})가 차변/대변에 동시에 존재합니다. 상대계정을 넣어주세요.`
+          openAlertModal(
+            "warning",
+            "입력 확인",
+            `같은 계정코드(${code})가 차변/대변에 동시에 존재합니다. 상대계정을 넣어 주세요.`
           );
+          return;
         }
       }
 
       for (const [i, l] of journal.lines.entries()) {
         if (!l.accountCode?.trim()) {
-          return alert(`라인 ${i + 1}: 계정코드를 입력하세요`);
+          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 계정코드를 입력해 주세요.`);
+          return;
         }
         if (!(Number(l.amount) > 0)) {
-          return alert(`라인 ${i + 1}: 금액은 0보다 커야 합니다.`);
+          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 금액은 0보다 커야 합니다.`);
+          return;
         }
       }
 
       if (totals.debitTotal !== totals.creditTotal) {
-        return alert(
+        openAlertModal(
+          "warning",
+          "입력 확인",
           `차변합(${totals.debitTotal})과 대변합(${totals.creditTotal})이 일치해야 저장됩니다.`
         );
+        return;
       }
 
       const payload = {
-  journalNo: journal.journalNo?.trim() ? journal.journalNo.trim() : null,
-  journalDate: journal.journalDate,
-  customerId: journal.customerId,
-  remark: journal.remark ?? "",
-  status: journal.status,
-  lines: (journal.lines || []).map((l) => ({
-    accountCode: l.accountCode?.trim() ?? "",
-    accountName: l.accountName?.trim() ?? "",
-    dcType: l.dcType,
-    amount: Number(l.amount) || 0,
-    lineRemark: l.lineRemark ?? "",
-  })),
-};
+        journalNo: journal.journalNo?.trim() ? journal.journalNo.trim() : null,
+        journalDate: journal.journalDate,
+        customerId: journal.customerId,
+        remark: journal.remark ?? "",
+        status: journal.status,
+        lines: (journal.lines || []).map((l) => ({
+          accountCode: l.accountCode?.trim() ?? "",
+          accountName: l.accountName?.trim() ?? "",
+          dcType: l.dcType,
+          amount: Number(l.amount) || 0,
+          lineRemark: l.lineRemark ?? "",
+        })),
+      };
 
       console.log("저장 payload =", payload);
 
@@ -320,22 +370,28 @@ export default function GeneralJournal() {
     } catch (e: any) {
       console.error("저장 실패", e);
       console.error("응답 데이터", e?.response?.data);
-      alert("저장실패 콘솔 확인");
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
-  const deleteJournal = async () => {
+  const confirmDeleteJournal = async () => {
     if (!selectedId) return;
-    if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
     try {
       await api.delete(`${API_BASE}/${selectedId}`);
       await fetchJournals();
       handleClose();
+      closeAlertModal();
     } catch (e) {
       console.error("전표 삭제 실패", e);
-      alert("삭제실패 (콘솔 확인)");
+      closeAlertModal();
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     }
+  };
+
+  const deleteJournal = async () => {
+    if (!selectedId) return;
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   const openNew = () => {
@@ -603,6 +659,72 @@ export default function GeneralJournal() {
         onDelete={deleteJournal}
         customerList={customerList}
       />
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                  }}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteJournal}
+                  className={`top-alert-button ${alertType}`}
+                >
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }

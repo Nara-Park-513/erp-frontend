@@ -75,6 +75,41 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
   const [orderName, setOrderName] = useState("");
   const [progressText, setProgressText] = useState("");
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
+
   const normalizeDetail = (
     r: any,
     fallback?: Partial<OrderProgressDetail>
@@ -125,7 +160,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
         setOrderName(safe.orderName);
         setProgressText(safe.progressText);
       } else {
-        alert(`상세 조회 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
+        openAlertModal("error", "상세 조회 실패", "상세 조회에 실패했습니다. 콘솔을 확인해 주세요.");
         setDetail(null);
       }
     } finally {
@@ -153,7 +188,10 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
 
   const handleSave = async () => {
     const msg = validate();
-    if (msg) return alert(msg);
+    if (msg) {
+      openAlertModal("warning", "입력 확인", msg);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -168,7 +206,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
           headers: { "Content-Type": "application/json" },
         });
 
-        alert("등록 완료");
+        openAlertModal("success", "등록 완료", "등록이 완료되었습니다.");
         await Promise.resolve(onChanged());
       } else {
         const currentData: OrderProgressDetail = {
@@ -182,42 +220,53 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
           headers: { "Content-Type": "application/json" },
         });
 
-        // 수정 후 화면에서 값 안 사라지게 현재 입력값 유지
         setDetail(currentData);
         setOrderNo(currentData.orderNo);
         setOrderName(currentData.orderName);
         setProgressText(currentData.progressText);
 
-        alert("수정 완료");
+        openAlertModal("success", "수정 완료", "수정이 완료되었습니다.");
         await Promise.resolve(onChanged());
       }
     } catch (e: any) {
       console.error("저장 실패", e);
-      alert(`저장 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
+  const confirmDelete = async () => {
     const targetId = id ?? detail?.id ?? null;
-    if (!targetId) return alert("신규는 저장(등록) 후 삭제할 수 있어요.");
-
-    const ok = window.confirm("정말 삭제할까요?");
-    if (!ok) return;
+    if (!targetId) {
+      openAlertModal("warning", "삭제 불가", "신규는 저장(등록) 후 삭제할 수 있습니다.");
+      return;
+    }
 
     setDeleting(true);
     try {
       await api.delete(API_DELETE(targetId));
-      alert("삭제 완료");
+      closeAlertModal();
+      openAlertModal("success", "삭제 완료", "삭제가 완료되었습니다.");
       onHide();
       await Promise.resolve(onChanged());
     } catch (e: any) {
       console.error("삭제 실패", e);
-      alert(`삭제 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
+      closeAlertModal();
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleDelete = async () => {
+    const targetId = id ?? detail?.id ?? null;
+    if (!targetId) {
+      openAlertModal("warning", "삭제 불가", "신규는 저장(등록) 후 삭제할 수 있습니다.");
+      return;
+    }
+
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   const handleClose = () => {
@@ -225,196 +274,264 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
   };
 
   return (
-    <Modal
-      show={show}
-      onHide={handleClose}
-      centered
-      backdrop="static"
-      size="lg"
-      contentClassName="border-0 shadow-lg"
-    >
-      <Modal.Header
-        closeButton={!isNew}
-        style={{
-          padding: "20px 24px",
-          borderBottom: "1px solid #eef2f7",
-          background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
-        }}
+    <>
+      <Modal
+        show={show}
+        onHide={handleClose}
+        centered
+        backdrop="static"
+        size="lg"
+        contentClassName="border-0 shadow-lg"
       >
-        <Modal.Title
+        <Modal.Header
+          closeButton={!isNew}
           style={{
-            fontWeight: 800,
-            color: "#1f2937",
-            fontSize: "28px",
-            letterSpacing: "-0.02em",
+            padding: "20px 24px",
+            borderBottom: "1px solid #eef2f7",
+            background: "linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%)",
           }}
         >
-          {isNew ? "오더 진행단계 신규" : "오더 진행단계 상세/수정"}
-        </Modal.Title>
-      </Modal.Header>
+          <Modal.Title
+            style={{
+              fontWeight: 800,
+              color: "#1f2937",
+              fontSize: "28px",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {isNew ? "오더 진행단계 신규" : "오더 진행단계 상세/수정"}
+          </Modal.Title>
+        </Modal.Header>
 
-      <Modal.Body
-        style={{
-          backgroundColor: "#f8fafc",
-          padding: "24px",
-        }}
-      >
-        <div
+        <Modal.Body
           style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e8ecf4",
-            borderRadius: "20px",
+            backgroundColor: "#f8fafc",
             padding: "24px",
-            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
           }}
         >
-          {loading && (
-            <div
-              style={{
-                padding: "40px 20px",
-                textAlign: "center",
-                color: "#6b7280",
-                fontWeight: 500,
-              }}
-            >
-              <Spinner animation="border" size="sm" style={{ marginRight: "8px" }} />
-              불러오는 중...
-            </div>
-          )}
-
-          {!loading && (
-            <>
-              <Row className="g-4">
-                <Col md={4}>
-                  <Form.Label
-                    style={{
-                      fontWeight: 700,
-                      color: "#475467",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    오더관리번호
-                  </Form.Label>
-                  <Form.Control
-                    value={orderNo}
-                    onChange={(e) => setOrderNo(e.target.value)}
-                    placeholder="자동 생성됩니다 예) ORD-2026-0001"
-                    disabled={isNew}
-                    style={isNew ? readOnlyStyle : inputStyle}
-                  />
-                </Col>
-
-                <Col md={8}>
-                  <Form.Label
-                    style={{
-                      fontWeight: 700,
-                      color: "#475467",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    오더관리명
-                  </Form.Label>
-                  <Form.Control
-                    value={orderName}
-                    onChange={(e) => setOrderName(e.target.value)}
-                    placeholder="예) 2월 정기 발주"
-                    style={inputStyle}
-                  />
-                </Col>
-
-                <Col md={12}>
-                  <Form.Label
-                    style={{
-                      fontWeight: 700,
-                      color: "#475467",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    진행단계
-                  </Form.Label>
-                  <Form.Control
-                    value={progressText}
-                    onChange={(e) => setProgressText(e.target.value)}
-                    placeholder="예) 제작중 / 출고완료 / 수령완료 등"
-                    style={inputStyle}
-                  />
-                </Col>
-              </Row>
-
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8ecf4",
+              borderRadius: "20px",
+              padding: "24px",
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)",
+            }}
+          >
+            {loading && (
               <div
                 style={{
-                  marginTop: "18px",
-                  paddingTop: "14px",
-                  borderTop: "1px solid #eef2f7",
-                  fontSize: "13px",
-                  color: "#98a2b3",
+                  padding: "40px 20px",
+                  textAlign: "center",
+                  color: "#6b7280",
                   fontWeight: 500,
                 }}
               >
-                {id ? `ID: ${id}` : detail?.id ? `ID: ${detail.id}` : "신규(아직 ID 없음)"}
+                <Spinner animation="border" size="sm" style={{ marginRight: "8px" }} />
+                불러오는 중...
               </div>
-            </>
-          )}
-        </div>
-      </Modal.Body>
+            )}
 
-      <Modal.Footer
-        style={{
-          padding: "18px 24px",
-          borderTop: "1px solid #eef2f7",
-          backgroundColor: "#ffffff",
-          gap: "10px",
-        }}
-      >
-        {isNew && (
-          <Button
-            onClick={handleClose}
-            disabled={saving || deleting}
-            style={{
-              backgroundColor: "#ffffff",
-              color: "#475569",
-              border: "1px solid #dbe2ea",
-              borderRadius: "10px",
-              padding: "10px 16px",
-              fontWeight: 700,
-            }}
-          >
-            닫기
-          </Button>
-        )}
+            {!loading && (
+              <>
+                <Row className="g-4">
+                  <Col md={4}>
+                    <Form.Label
+                      style={{
+                        fontWeight: 700,
+                        color: "#475467",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      오더관리번호
+                    </Form.Label>
+                    <Form.Control
+                      value={orderNo}
+                      onChange={(e) => setOrderNo(e.target.value)}
+                      placeholder="자동 생성됩니다 예) ORD-2026-0001"
+                      disabled={isNew}
+                      style={isNew ? readOnlyStyle : inputStyle}
+                    />
+                  </Col>
 
-        {!isNew && (
-          <Button
-            onClick={handleDelete}
-            disabled={(isNew && !detail?.id) || saving || deleting}
-            title={isNew && !detail?.id ? "신규는 저장(등록) 후 삭제 가능" : ""}
-            style={{
-              backgroundColor: "#ef4444",
-              borderColor: "#ef4444",
-              borderRadius: "10px",
-              padding: "10px 16px",
-              fontWeight: 700,
-              opacity: (isNew && !detail?.id) || saving || deleting ? 0.65 : 1,
-            }}
-          >
-            {deleting ? "삭제중..." : "삭제"}
-          </Button>
-        )}
+                  <Col md={8}>
+                    <Form.Label
+                      style={{
+                        fontWeight: 700,
+                        color: "#475467",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      오더관리명
+                    </Form.Label>
+                    <Form.Control
+                      value={orderName}
+                      onChange={(e) => setOrderName(e.target.value)}
+                      placeholder="예) 2월 정기 발주"
+                      style={inputStyle}
+                    />
+                  </Col>
 
-        <Button
-          onClick={handleSave}
-          disabled={saving || deleting}
+                  <Col md={12}>
+                    <Form.Label
+                      style={{
+                        fontWeight: 700,
+                        color: "#475467",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      진행단계
+                    </Form.Label>
+                    <Form.Control
+                      value={progressText}
+                      onChange={(e) => setProgressText(e.target.value)}
+                      placeholder="예) 제작중 / 출고완료 / 수령완료 등"
+                      style={inputStyle}
+                    />
+                  </Col>
+                </Row>
+
+                <div
+                  style={{
+                    marginTop: "18px",
+                    paddingTop: "14px",
+                    borderTop: "1px solid #eef2f7",
+                    fontSize: "13px",
+                    color: "#98a2b3",
+                    fontWeight: 500,
+                  }}
+                >
+                  {id ? `ID: ${id}` : detail?.id ? `ID: ${detail.id}` : "신규(아직 ID 없음)"}
+                </div>
+              </>
+            )}
+          </div>
+        </Modal.Body>
+
+        <Modal.Footer
           style={{
-            backgroundColor: "#6b7280",
-            borderColor: "#6b7280",
-            borderRadius: "10px",
-            padding: "10px 18px",
-            fontWeight: 700,
+            padding: "18px 24px",
+            borderTop: "1px solid #eef2f7",
+            backgroundColor: "#ffffff",
+            gap: "10px",
           }}
         >
-          {saving ? "저장중..." : isNew ? "등록" : "저장"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+          {isNew && (
+            <Button
+              onClick={handleClose}
+              disabled={saving || deleting}
+              style={{
+                backgroundColor: "#ffffff",
+                color: "#475569",
+                border: "1px solid #dbe2ea",
+                borderRadius: "10px",
+                padding: "10px 16px",
+                fontWeight: 700,
+              }}
+            >
+              닫기
+            </Button>
+          )}
+
+          {!isNew && (
+            <Button
+              onClick={handleDelete}
+              disabled={(isNew && !detail?.id) || saving || deleting}
+              title={isNew && !detail?.id ? "신규는 저장(등록) 후 삭제 가능" : ""}
+              style={{
+                backgroundColor: "#ef4444",
+                borderColor: "#ef4444",
+                borderRadius: "10px",
+                padding: "10px 16px",
+                fontWeight: 700,
+                opacity: (isNew && !detail?.id) || saving || deleting ? 0.65 : 1,
+              }}
+            >
+              {deleting ? "삭제중..." : "삭제"}
+            </Button>
+          )}
+
+          <Button
+            onClick={handleSave}
+            disabled={saving || deleting}
+            style={{
+              backgroundColor: "#6b7280",
+              borderColor: "#6b7280",
+              borderRadius: "10px",
+              padding: "10px 18px",
+              fontWeight: 700,
+            }}
+          >
+            {saving ? "저장중..." : isNew ? "등록" : "저장"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                  }}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className={`top-alert-button ${alertType}`}
+                >
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
+    </>
   );
 }

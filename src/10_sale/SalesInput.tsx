@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Table } from "react-bootstrap";
+import { Container, Row, Col, Table, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 // import SideBar from "../include/SideBar";
@@ -15,6 +15,7 @@ import SalesModal, {
   Customer,
   ItemOption,
 } from "../component/sales/SalesModal";
+import "../Auth.css";
 
 const api = axios.create({
   baseURL: "http://localhost:8888",
@@ -62,10 +63,45 @@ export default function SalesInput() {
   const [salesList, setSalesList] = useState<Sales[]>([]);
   const [sales, setSales] = useState<Sales>(emptySales());
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
   const totalAmount = useMemo(
     () => (sales.lines || []).reduce((s, l) => s + (Number(l.amount) || 0), 0),
     [sales.lines]
   );
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
 
   const fetchSales = async (customers: Customer[] = []) => {
     try {
@@ -257,22 +293,38 @@ export default function SalesInput() {
 
   const saveSales = async () => {
     try {
-      if (!sales.salesDate) return alert("판매일자를 입력하세요");
+      if (!sales.salesDate) {
+        openAlertModal("warning", "입력 확인", "판매일자를 입력해 주세요.");
+        return;
+      }
+
       if (!sales.lines || sales.lines.length === 0) {
-        return alert("판매 라인을 1개 이상 입력하세요");
+        openAlertModal("warning", "입력 확인", "판매 라인을 1개 이상 입력해 주세요.");
+        return;
       }
 
       const customerId = sales.customerId;
-      if (!customerId) return alert("거래처를 목록에서 선택해 주세요(customerId 필요)");
+      if (!customerId) {
+        openAlertModal("warning", "입력 확인", "거래처를 목록에서 선택해 주세요.");
+        return;
+      }
 
       for (const [i, l] of sales.lines.entries()) {
-        if (!l.itemId) return alert(`라인 ${i + 1}: 품목을 선택하세요(itemId 필요)`);
-        if (!l.itemName?.trim()) return alert(`라인 ${i + 1}: 품목명을 입력하세요`);
+        if (!l.itemId) {
+          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 품목을 선택해 주세요.`);
+          return;
+        }
+        if (!l.itemName?.trim()) {
+          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 품목명을 입력해 주세요.`);
+          return;
+        }
         if (!(Number(l.qty) > 0)) {
-          return alert(`라인 ${i + 1}: 수량은 0보다 커야 합니다.`);
+          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 수량은 0보다 커야 합니다.`);
+          return;
         }
         if (!(Number(l.price) >= 0)) {
-          return alert(`라인 ${i + 1}: 단가는 0 이상이어야 합니다.`);
+          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 단가는 0 이상이어야 합니다.`);
+          return;
         }
       }
 
@@ -322,22 +374,28 @@ export default function SalesInput() {
       handleClose();
     } catch (e) {
       console.error("저장 실패", e);
-      alert("저장 실패 (콘솔 확인)");
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
-  const deleteSales = async () => {
+  const confirmDeleteSales = async () => {
     if (!selectedId) return;
-    if (!window.confirm("삭제하시겠습니까?")) return;
 
     try {
       await api.delete(`${API_BASE}/${selectedId}`);
       await fetchSales(customerList);
       handleClose();
+      closeAlertModal();
     } catch (e) {
       console.error("판매 삭제 실패", e);
-      alert("삭제 실패 (콘솔 확인)");
+      closeAlertModal();
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     }
+  };
+
+  const deleteSales = async () => {
+    if (!selectedId) return;
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   return (
@@ -586,6 +644,72 @@ export default function SalesInput() {
         customerList={customerList}
         itemList={itemList}
       />
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                  }}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteSales}
+                  className={`top-alert-button ${alertType}`}
+                >
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }

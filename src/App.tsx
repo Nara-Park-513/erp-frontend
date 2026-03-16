@@ -22,8 +22,8 @@ import About from './sub/About';
 import Contact from './sub/Contact';
 import Login from './1_member/Login';
 import Forgot from './1_member/Forgot';
-import InstagramRedirect from './1_member/InstargramRedirect';
-import KakaoRedirect from './1_member/KakaoRedirect';
+import InstagramRedirect from './1_member/GoogleRedirect';
+import KakaoRedirect from './1_member/FacebookRedirect';
 import Inventory from './4_inventory/Inventory';
 import MyPage from './2_mypage/MyPage';
 import Customer from './5_customer/Costomer';
@@ -50,6 +50,7 @@ import EApprovalMyDocs from './16_mydocs/EApprovalMyDocs';
 import NoticeList from './17_notice/noticeList';
 import OrderProgress from './18_order/OrderProgress';
 import Welcome from './welcome';
+import GoogleRedirect from './1_member/GoogleRedirect';
 
 
 
@@ -96,7 +97,7 @@ function App() {
 
    <Route path="/login" element={<Navigate to="/login" replace />} />
     <Route path="/forgot" element={<Forgot/>}/>
-    <Route path="/auth/instagram" element={<InstagramRedirect />} />
+    <Route path="/auth/google/callback" element={<GoogleRedirect />} />
 <Route path="/auth/kakao" element={<KakaoRedirect />} />
   </Routes>
 </BrowserRouter>

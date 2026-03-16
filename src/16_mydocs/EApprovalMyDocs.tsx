@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Container, Row, Col, Table, Button } from "react-bootstrap";
+import { Container, Row, Col, Table, Button, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 // import SideBar from "../include/SideBar";
@@ -9,6 +9,7 @@ import { TableTitle } from "../stylesjs/Text.styles";
 import { BtnRight } from "../stylesjs/Button.styles";
 // import Lnb from "../include/Lnb";
 import ApprovalModal, { ApprovalDocForm } from "../component/approval/ApprovalModal";
+import "../Auth.css";
 
 /** axios */
 const api = axios.create({
@@ -93,7 +94,42 @@ export default function EApprovalMyDocs() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [doc, setDoc] = useState<ApprovalDocForm>(emptyDoc());
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isConfirmModal, setIsConfirmModal] = useState(false);
+
   const drafterId: number | null = null;
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(false);
+    setShowAlertModal(true);
+  };
+
+  const openConfirmModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setIsConfirmModal(true);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+    setIsConfirmModal(false);
+  };
 
   const fetchList = async () => {
     setLoading(true);
@@ -147,7 +183,7 @@ export default function EApprovalMyDocs() {
       setRows(normalized);
     } catch (e: any) {
       console.error("전자결재 조회 실패", e);
-      alert(`전자결재 조회 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
+      openAlertModal("error", "조회 실패", "전자결재 조회에 실패했습니다. 콘솔을 확인해 주세요.");
       setRows([]);
     } finally {
       setLoading(false);
@@ -182,7 +218,7 @@ export default function EApprovalMyDocs() {
       setShow(true);
     } catch (e) {
       console.error("상세 조회 실패", e);
-      alert("상세 조회 실패(콘솔 확인)");
+      openAlertModal("error", "상세 조회 실패", "상세 조회에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
@@ -203,7 +239,7 @@ export default function EApprovalMyDocs() {
       setShow(true);
     } catch (e) {
       console.error("복사 불러오기 실패", e);
-      alert("복사 불러오기 실패(콘솔 확인)");
+      openAlertModal("error", "복사 불러오기 실패", "복사 불러오기에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
@@ -215,8 +251,14 @@ export default function EApprovalMyDocs() {
 
   const save = async () => {
     try {
-      if (!doc.title.trim()) return alert("제목을 입력하세요.");
-      if (!doc.draftDate) return alert("기안일자를 입력하세요.");
+      if (!doc.title.trim()) {
+        openAlertModal("warning", "입력 확인", "제목을 입력하세요.");
+        return;
+      }
+      if (!doc.draftDate) {
+        openAlertModal("warning", "입력 확인", "기안일자를 입력하세요.");
+        return;
+      }
 
       const loginUserId = 1;
 
@@ -236,22 +278,28 @@ export default function EApprovalMyDocs() {
       handleClose();
     } catch (e) {
       console.error("저장 실패", e);
-      alert("저장 실패(콘솔 확인)");
+      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
     }
   };
 
-  const del = async () => {
+  const confirmDelete = async () => {
     if (!selectedId) return;
-    if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
     try {
       await api.delete(API_DELETE(selectedId));
       await fetchList();
       handleClose();
+      closeAlertModal();
     } catch (e) {
       console.error("삭제 실패", e);
-      alert("삭제 실패(콘솔 확인)");
+      closeAlertModal();
+      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     }
+  };
+
+  const del = async () => {
+    if (!selectedId) return;
+    openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
   // const menuList = [{ key: "approval", label: "전자결재", path: "/approval" }];
@@ -610,6 +658,72 @@ export default function EApprovalMyDocs() {
         onSave={save}
         onDelete={del}
       />
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div
+            className="top-alert-right"
+            style={{ display: "flex", gap: "8px", alignItems: "center" }}
+          >
+            {isConfirmModal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  style={{
+                    height: "36px",
+                    minWidth: "68px",
+                    border: "1px solid #d0d5dd",
+                    borderRadius: "999px",
+                    padding: "0 14px",
+                    background: "#ffffff",
+                    color: "#475467",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                  }}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className={`top-alert-button ${alertType}`}
+                >
+                  삭제
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={closeAlertModal}
+                className={`top-alert-button ${alertType}`}
+              >
+                확인
+              </button>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Container, Row, Col, Table, Button } from "react-bootstrap";
+import { Container, Row, Col, Table, Button, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
 // import SideBar from "../include/SideBar";
@@ -10,6 +10,7 @@ import { BtnRight } from "../stylesjs/Button.styles";
 // import Lnb from "../include/Lnb";
 
 import OrderProgressModal from "../component/orders/OrderProgressModal";
+import "../Auth.css";
 
 /** axios */
 const api = axios.create({
@@ -54,6 +55,26 @@ export default function OrderProgress() {
   const [showModal, setShowModal] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("error");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const openAlertModal = (
+    type: "success" | "error" | "warning",
+    title: string,
+    message: string
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setShowAlertModal(true);
+  };
+
+  const closeAlertModal = () => {
+    setShowAlertModal(false);
+  };
+
   const fetchList = async () => {
     setLoading(true);
     try {
@@ -84,7 +105,7 @@ export default function OrderProgress() {
       setRows(normalized);
     } catch (e: any) {
       console.error("오더 진행단계 조회 실패", e);
-      alert(`오더 진행단계 조회 실패: ${e?.response?.status ?? ""} (콘솔 확인)`);
+      openAlertModal("error", "조회 실패", "오더 진행단계 조회에 실패했습니다. 콘솔을 확인해 주세요.");
       setRows([]);
     } finally {
       setLoading(false);
@@ -374,6 +395,39 @@ export default function OrderProgress() {
         onHide={closeModal}
         onChanged={fetchList}
       />
+
+      <Modal
+        show={showAlertModal}
+        onHide={() => {}}
+        centered={false}
+        backdrop={true}
+        keyboard={false}
+        dialogClassName="top-alert-modal"
+        contentClassName="top-alert-content"
+      >
+        <Modal.Body className={`top-alert-body ${alertType}`}>
+          <div className="top-alert-left">
+            <div className={`top-alert-icon ${alertType}`}>
+              {alertType === "success" ? "✓" : alertType === "error" ? "✕" : "!"}
+            </div>
+          </div>
+
+          <div className="top-alert-center">
+            <h3 className="top-alert-title">{alertTitle}</h3>
+            <p className="top-alert-text">{alertMessage}</p>
+          </div>
+
+          <div className="top-alert-right">
+            <button
+              type="button"
+              onClick={closeAlertModal}
+              className={`top-alert-button ${alertType}`}
+            >
+              확인
+            </button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }
