@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Table, Modal } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import Top from "../include/Top";
 import Header from "../include/Header";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
@@ -29,6 +30,14 @@ type Item = {
   itemName: string;
   unitPrice?: number;
 };
+
+type StockMenuKey = "current" | "by-item" | "history";
+
+const STOCK_MENU: { key: StockMenuKey; label: string }[] = [
+  { key: "current", label: "현재고조회" },
+  { key: "by-item", label: "품목별재고조회" },
+  { key: "history", label: "재고변동이력" },
+];
 
 const API_STOCK = "http://localhost:8888/api/stock";
 const API_ITEM = "http://localhost:8888/api/inv/items";
@@ -70,10 +79,40 @@ const getStockStatusStyle = (status: string) => {
   }
 };
 
+const getSectionTitle = (key: StockMenuKey) => {
+  switch (key) {
+    case "current":
+      return "현재고조회";
+    case "by-item":
+      return "품목별재고조회";
+    case "history":
+      return "재고변동이력";
+    default:
+      return "현재고조회";
+  }
+};
+
+const getSectionSubTitle = (key: StockMenuKey) => {
+  switch (key) {
+    case "current":
+      return "현재고";
+    case "by-item":
+      return "품목별 재고";
+    case "history":
+      return "재고 변동 내역";
+    default:
+      return "현재고";
+  }
+};
+
 const StockStatus = () => {
+  const navigate = useNavigate();
+
   const [keyword, setKeyword] = useState("");
   const [stockList, setStockList] = useState<StockItem[]>([]);
   const [itemList, setItemList] = useState<Item[]>([]);
+
+  const [activeMenu, setActiveMenu] = useState<StockMenuKey>("current");
 
   const [show, setShow] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
@@ -303,6 +342,25 @@ const StockStatus = () => {
     openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
+  const handleCategoryClick = (key: StockMenuKey) => {
+    setActiveMenu(key);
+
+    if (key === "current") {
+      navigate("/stock");
+      return;
+    }
+
+    if (key === "by-item") {
+      navigate("/stock-item");
+      return;
+    }
+
+    if (key === "history") {
+      navigate("/stock-history");
+      return;
+    }
+  };
+
   return (
     <>
       <div className="fixed-top">
@@ -321,7 +379,78 @@ const StockStatus = () => {
           <Row>
             <Col>
               <Flex>
-                <Left></Left>
+                <Left>
+                  <TopWrap />
+
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        minWidth: "120px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          marginBottom: "14px",
+                          fontSize: "16px",
+                          fontWeight: 700,
+                          color: "#1f2937",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        재고현황
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          gap: "8px",
+                        }}
+                      >
+                        {STOCK_MENU.map((item) => {
+                          const isActive = activeMenu === item.key;
+
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => handleCategoryClick(item.key)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "flex-start",
+                                border: "none",
+                                backgroundColor: isActive ? "#f1f3f5" : "transparent",
+                                color: isActive ? "#111827" : "#667085",
+                                fontWeight: isActive ? 700 : 500,
+                                borderRadius: "10px",
+                                padding: "9px 12px",
+                                fontSize: "14px",
+                                lineHeight: 1.2,
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </Left>
 
                 <Right style={{ marginTop: "-20px" }}>
                   <TopWrap />
@@ -343,7 +472,7 @@ const StockStatus = () => {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        재고현황
+                        {getSectionTitle(activeMenu)}
                       </TableTitle>
 
                       <div
@@ -354,7 +483,7 @@ const StockStatus = () => {
                           fontWeight: 500,
                         }}
                       >
-                        현재고
+                        {getSectionSubTitle(activeMenu)}
                       </div>
                     </div>
                   </div>

@@ -54,6 +54,9 @@ import GoogleRedirect from './1_member/GoogleRedirect';
 import SearchPage from './pages/SearchPage';
 import ShipmentManagement from './18_order/ShipmentManagement';
 import DeliveryTracking from './18_order/DeliveryTracking';
+import MaterialReceiptManagement from './19_material/MaterialReceiptManagement';
+import StockItemStatus from './12_stock/StockItemStatus';
+import StockHistoryStatus from './12_stock/StockHistoryStatus';
 
 
 
@@ -100,6 +103,9 @@ function App() {
 <Route path="/search" element={<SearchPage />} />
 <Route path="/shipment-management" element={<ShipmentManagement />} />
 <Route path="/delivery-tracking" element={<DeliveryTracking />} />
+<Route path="/material-receipt" element={<MaterialReceiptManagement />} />
+<Route path="/stock-item" element={<StockItemStatus />} />
+<Route path="/stock-history" element={<StockHistoryStatus />} />
 
    <Route path="/login" element={<Navigate to="/login" replace />} />
     <Route path="/forgot" element={<Forgot/>}/>

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Table, Modal } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import Top from "../include/Top";
 import Header from "../include/Header";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
@@ -40,6 +41,13 @@ api.interceptors.response.use(
 );
 
 const API_BASE = "/api/material-orders";
+
+type MaterialMenuKey = "material-order" | "receipt" | "vendor";
+
+const MATERIAL_MENU: { key: MaterialMenuKey; label: string }[] = [
+  { key: "material-order", label: "자재발주등록" },
+  { key: "receipt", label: "입고관리" },
+];
 
 const emptyMaterialOrder = (): MaterialOrder => ({
   orderNo: "",
@@ -110,12 +118,16 @@ const extractExpectedDate = (remark?: string) => {
 };
 
 export default function MaterialManagement() {
+  const navigate = useNavigate();
+
   const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [show, setShow] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [materialOrderList, setMaterialOrderList] = useState<MaterialOrder[]>([]);
   const [materialOrder, setMaterialOrder] = useState<MaterialOrder>(emptyMaterialOrder());
+
+  const [activeMenu, setActiveMenu] = useState<MaterialMenuKey>("material-order");
 
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
@@ -423,6 +435,20 @@ export default function MaterialManagement() {
     openConfirmModal("warning", "삭제 확인", "정말 삭제하시겠습니까?");
   };
 
+  const handleCategoryClick = (key: MaterialMenuKey) => {
+    setActiveMenu(key);
+
+    if (key === "material-order") {
+      navigate("/material");
+      return;
+    }
+
+    if (key === "receipt") {
+      navigate("/material-receipt");
+      return;
+    }
+  };
+
   return (
     <>
       <div className="fixed-top">
@@ -441,7 +467,78 @@ export default function MaterialManagement() {
           <Row>
             <Col>
               <Flex>
-                <Left>{/* 필요 시 메뉴 영역 */}</Left>
+                <Left>
+                  <TopWrap />
+
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        minWidth: "110px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          marginBottom: "14px",
+                          fontSize: "16px",
+                          fontWeight: 700,
+                          color: "#1f2937",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        자재관리
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          gap: "8px",
+                        }}
+                      >
+                        {MATERIAL_MENU.map((item) => {
+                          const isActive = activeMenu === item.key;
+
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => handleCategoryClick(item.key)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "flex-start",
+                                border: "none",
+                                backgroundColor: isActive ? "#f1f3f5" : "transparent",
+                                color: isActive ? "#111827" : "#667085",
+                                fontWeight: isActive ? 700 : 500,
+                                borderRadius: "10px",
+                                padding: "9px 12px",
+                                fontSize: "14px",
+                                lineHeight: 1.2,
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </Left>
 
                 <Right style={{ marginTop: "-20px" }}>
                   <TopWrap />
@@ -698,7 +795,7 @@ export default function MaterialManagement() {
 
                     <button
                       type="button"
-                      onClick={openNew}
+                      onClick={() => navigate("/material-order")}
                       style={{
                         backgroundColor: "#6b7280",
                         color: "#ffffff",
@@ -712,7 +809,7 @@ export default function MaterialManagement() {
                         cursor: "pointer",
                       }}
                     >
-                      발주등록
+                      자재발주등록
                     </button>
                   </BtnRight>
                 </Right>
