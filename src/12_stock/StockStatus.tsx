@@ -3,25 +3,22 @@ import { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Table, Modal } from "react-bootstrap";
 import Top from "../include/Top";
 import Header from "../include/Header";
-// import SideBar from "../include/SideBar";
 import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
 import { InputGroup, Search } from "../stylesjs/Input.styles";
 import { BtnRight } from "../stylesjs/Button.styles";
-// import Lnb from "../include/Lnb";
 
 import StockModal, { StockForm } from "../component/stock/StockModal";
 import "../Auth.css";
 
-/* =========================
-   타입 정의
-========================= */
 type StockItem = {
   id: number;
   itemId: number;
   itemCode: string;
   itemName: string;
   stockQty: number;
+  availableQty: number;
+  stockStatus: string;
   unitPrice: number;
   totalAmount: number;
 };
@@ -33,13 +30,45 @@ type Item = {
   unitPrice?: number;
 };
 
-/* =========================
-   API 설정
-========================= */
 const API_STOCK = "http://localhost:8888/api/stock";
 const API_ITEM = "http://localhost:8888/api/inv/items";
 
 const n = (v: any) => Number(v ?? 0) || 0;
+
+const getStockStatus = (qty: number) => {
+  if (qty <= 0) return "품절";
+  if (qty < 10) return "부족";
+  return "정상";
+};
+
+const getStockStatusStyle = (status: string) => {
+  switch (status) {
+    case "정상":
+      return {
+        backgroundColor: "#e8f7ee",
+        color: "#1f7a45",
+        border: "1px solid #cdebd7",
+      };
+    case "부족":
+      return {
+        backgroundColor: "#fff6e5",
+        color: "#a16207",
+        border: "1px solid #fde7b0",
+      };
+    case "품절":
+      return {
+        backgroundColor: "#fdecec",
+        color: "#b42318",
+        border: "1px solid #f7caca",
+      };
+    default:
+      return {
+        backgroundColor: "#f3f4f6",
+        color: "#4b5563",
+        border: "1px solid #e5e7eb",
+      };
+  }
+};
 
 const StockStatus = () => {
   const [keyword, setKeyword] = useState("");
@@ -69,8 +98,8 @@ const StockStatus = () => {
 
   const totals = useMemo(() => {
     const totalQty = stockList.reduce((s, i) => s + n(i.stockQty), 0);
-    const totalAmount = stockList.reduce((s, i) => s + n(i.totalAmount), 0);
-    return { totalQty, totalAmount };
+    const totalAvailableQty = stockList.reduce((s, i) => s + n(i.availableQty), 0);
+    return { totalQty, totalAvailableQty };
   }, [stockList]);
 
   const openAlertModal = (
@@ -115,7 +144,6 @@ const StockStatus = () => {
       });
 
       const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
-      console.log("✅ items raw sample =", rows?.[0]);
 
       const normalized: Item[] = rows.map((x: any) => ({
         id: n(x.id ?? x.itemId ?? x.item_id),
@@ -124,7 +152,6 @@ const StockStatus = () => {
         unitPrice: n(x.outPrice ?? x.unitPrice ?? 0),
       }));
 
-      console.log("✅ items normalized sample =", normalized?.[0]);
       setItemList(normalized);
     } catch (e: any) {
       console.error("❌ 품목 목록 조회 실패", e?.response?.status, e?.response?.data);
@@ -144,7 +171,6 @@ const StockStatus = () => {
       });
 
       const rows = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
-      console.log("✅ stock raw sample =", rows?.[0]);
 
       const itemMap = new Map<number, Item>();
       itemList.forEach((it) => itemMap.set(it.id, it));
@@ -154,6 +180,7 @@ const StockStatus = () => {
         const it = itemMap.get(itemId);
 
         const stockQty = n(i.onHandQty ?? i.stockQty ?? 0);
+        const availableQty = stockQty;
         const unitPrice = n(i.unitPrice ?? it?.unitPrice ?? 0);
 
         return {
@@ -162,12 +189,13 @@ const StockStatus = () => {
           itemCode: String(i.itemCode ?? it?.itemCode ?? ""),
           itemName: String(i.itemName ?? it?.itemName ?? ""),
           stockQty,
+          availableQty,
+          stockStatus: getStockStatus(stockQty),
           unitPrice,
           totalAmount: stockQty * unitPrice,
         };
       });
 
-      console.log("✅ stock normalized sample =", list?.[0]);
       setStockList(list);
     } catch (e: any) {
       console.error("❌ 재고조회 실패", e?.response?.status, e?.response?.data);
@@ -188,8 +216,6 @@ const StockStatus = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemList.length]);
-
-  // const stockMenu = [{ key: "status", label: "재고현황", path: "/stock" }];
 
   const openCreate = async () => {
     await fetchItems();
@@ -237,7 +263,7 @@ const StockStatus = () => {
     if (mode === "create") {
       const exists = stockList.some((s) => s.itemId === payload.itemId);
       if (exists) {
-        openAlertModal("warning", "중복 확인", "이미 재고가 등록된 품목입니다. 수정으로 처리해 주세요.");
+        openAlertModal("warning", "중복 확인", "이미 재고가 등록된 품목입니다. 조정으로 처리해 주세요.");
         return;
       }
     }
@@ -284,8 +310,6 @@ const StockStatus = () => {
         <Top />
       </div>
 
-      {/* <SideBar /> */}
-
       <div
         style={{
           backgroundColor: "#ffffff",
@@ -297,9 +321,7 @@ const StockStatus = () => {
           <Row>
             <Col>
               <Flex>
-                <Left>
-                  {/* <Lnb menuList={stockMenu} title="재고현황" /> */}
-                </Left>
+                <Left></Left>
 
                 <Right style={{ marginTop: "-20px" }}>
                   <TopWrap />
@@ -332,7 +354,7 @@ const StockStatus = () => {
                           fontWeight: 500,
                         }}
                       >
-                        목록
+                        현재고
                       </div>
                     </div>
                   </div>
@@ -449,7 +471,7 @@ const StockStatus = () => {
                               textAlign: "right",
                             }}
                           >
-                            재고수량
+                            현재고
                           </th>
                           <th
                             style={{
@@ -461,7 +483,7 @@ const StockStatus = () => {
                               textAlign: "right",
                             }}
                           >
-                            단가
+                            가용재고
                           </th>
                           <th
                             style={{
@@ -470,10 +492,10 @@ const StockStatus = () => {
                               fontWeight: 700,
                               color: "#475467",
                               borderBottom: "1px solid #e8ecf4",
-                              textAlign: "right",
+                              textAlign: "center",
                             }}
                           >
-                            재고금액
+                            재고상태
                           </th>
                         </tr>
                       </thead>
@@ -532,6 +554,7 @@ const StockStatus = () => {
                                   textAlign: "right",
                                   color: "#374151",
                                   borderBottom: "1px solid #eef2f7",
+                                  fontWeight: 600,
                                 }}
                               >
                                 {n(i.stockQty).toLocaleString()}
@@ -545,19 +568,32 @@ const StockStatus = () => {
                                   borderBottom: "1px solid #eef2f7",
                                 }}
                               >
-                                {n(i.unitPrice).toLocaleString()}
+                                {n(i.availableQty).toLocaleString()}
                               </td>
                               <td
                                 style={{
                                   padding: "14px 18px",
                                   verticalAlign: "middle",
-                                  textAlign: "right",
-                                  color: "#111827",
-                                  fontWeight: 700,
+                                  textAlign: "center",
                                   borderBottom: "1px solid #eef2f7",
                                 }}
                               >
-                                {n(i.totalAmount).toLocaleString()}
+                                <span
+                                  style={{
+                                    ...getStockStatusStyle(i.stockStatus),
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    minWidth: "70px",
+                                    height: "30px",
+                                    borderRadius: "999px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    padding: "0 12px",
+                                  }}
+                                >
+                                  {i.stockStatus}
+                                </span>
                               </td>
                             </tr>
                           ))
@@ -598,29 +634,46 @@ const StockStatus = () => {
                             </th>
                             <th
                               style={{
-                                borderTop: "1px solid #e8ecf4",
-                                backgroundColor: "#f8fafc",
-                              }}
-                            ></th>
-                            <th
-                              style={{
                                 padding: "16px 18px",
                                 textAlign: "right",
-                                fontSize: "15px",
-                                fontWeight: 800,
+                                fontSize: "14px",
+                                fontWeight: 700,
                                 color: "#111827",
                                 borderTop: "1px solid #e8ecf4",
                               }}
                             >
-                              {totals.totalAmount.toLocaleString()}
+                              {totals.totalAvailableQty.toLocaleString()}
                             </th>
+                            <th
+                              style={{
+                                borderTop: "1px solid #e8ecf4",
+                                backgroundColor: "#f8fafc",
+                              }}
+                            ></th>
                           </tr>
                         </tfoot>
                       )}
                     </Table>
                   </div>
 
-                  <BtnRight style={{ marginTop: "14px" }}>
+                  <BtnRight style={{ marginTop: "14px", gap: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={fetchStock}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#475569",
+                        border: "1px solid #dbe2ea",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      새로고침
+                    </button>
+
                     <button
                       type="button"
                       onClick={openCreate}
@@ -636,16 +689,8 @@ const StockStatus = () => {
                         transition: "all 0.2s ease",
                         cursor: "pointer",
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#5b6472";
-                        e.currentTarget.style.borderColor = "#5b6472";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "#6b7280";
-                        e.currentTarget.style.borderColor = "#6b7280";
-                      }}
                     >
-                      재고등록
+                      재고조정
                     </button>
                   </BtnRight>
                 </Right>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Modal, Button, Form, Row, Col, Spinner } from "react-bootstrap";
 import axios from "axios";
 
-/** ✅ axios (프로젝트 패턴 동일) */
+/** axios */
 const api = axios.create({
   baseURL: "http://localhost:8888",
   timeout: 10000,
@@ -29,7 +29,6 @@ api.interceptors.response.use(
   }
 );
 
-/** ✅ 여기만 너 백엔드에 맞게 수정 */
 const API_CREATE = `/api/orders/progress`;
 const API_DETAIL = (id: number) => `/api/orders/progress/${id}`;
 const API_UPDATE = (id: number) => `/api/orders/progress/${id}`;
@@ -48,6 +47,15 @@ type Props = {
   onHide: () => void;
   onChanged: () => void | Promise<void>;
 };
+
+const ORDER_STATUS_OPTIONS = [
+  "접수완료",
+  "재고확인중",
+  "출고대기",
+  "출고완료",
+  "배송중",
+  "완료",
+];
 
 const inputStyle = {
   height: "44px",
@@ -73,7 +81,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
 
   const [orderNo, setOrderNo] = useState("");
   const [orderName, setOrderName] = useState("");
-  const [progressText, setProgressText] = useState("");
+  const [progressText, setProgressText] = useState("접수완료");
 
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertType, setAlertType] = useState<"success" | "error" | "warning">("warning");
@@ -124,7 +132,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
         r?.statusText ??
         r?.status ??
         fallback?.progressText ??
-        ""
+        "접수완료"
     ),
   });
 
@@ -132,7 +140,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
     setDetail(null);
     setOrderNo("");
     setOrderName("");
-    setProgressText("");
+    setProgressText("접수완료");
   };
 
   const loadDetail = async (
@@ -149,18 +157,18 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
       setDetail(d);
       setOrderNo(d.orderNo);
       setOrderName(d.orderName);
-      setProgressText(d.progressText);
+      setProgressText(d.progressText || "접수완료");
     } catch (e: any) {
-      console.error("상세 조회 실패", e);
+      console.error("주문 상세 조회 실패", e);
 
       if (fallback) {
         const safe = normalizeDetail({}, fallback);
         setDetail(safe);
         setOrderNo(safe.orderNo);
         setOrderName(safe.orderName);
-        setProgressText(safe.progressText);
+        setProgressText(safe.progressText || "접수완료");
       } else {
-        openAlertModal("error", "상세 조회 실패", "상세 조회에 실패했습니다. 콘솔을 확인해 주세요.");
+        openAlertModal("error", "상세 조회 실패", "주문 상세 조회에 실패했습니다. 콘솔을 확인해 주세요.");
         setDetail(null);
       }
     } finally {
@@ -181,8 +189,9 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
   }, [show, id]);
 
   const validate = () => {
-    if (!isNew && !orderNo.trim()) return "오더관리번호를 입력하세요.";
-    if (!orderName.trim()) return "오더관리명을 입력하세요.";
+    if (!isNew && !orderNo.trim()) return "오더번호가 없습니다.";
+    if (!orderName.trim()) return "오더명을 입력하세요.";
+    if (!progressText.trim()) return "진행상태를 선택하세요.";
     return "";
   };
 
@@ -206,7 +215,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
           headers: { "Content-Type": "application/json" },
         });
 
-        openAlertModal("success", "등록 완료", "등록이 완료되었습니다.");
+        openAlertModal("success", "등록 완료", "주문이 정상적으로 접수되었습니다.");
         await Promise.resolve(onChanged());
       } else {
         const currentData: OrderProgressDetail = {
@@ -225,12 +234,12 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
         setOrderName(currentData.orderName);
         setProgressText(currentData.progressText);
 
-        openAlertModal("success", "수정 완료", "수정이 완료되었습니다.");
+        openAlertModal("success", "저장 완료", "주문 정보가 저장되었습니다.");
         await Promise.resolve(onChanged());
       }
     } catch (e: any) {
-      console.error("저장 실패", e);
-      openAlertModal("error", "저장 실패", "저장에 실패했습니다. 콘솔을 확인해 주세요.");
+      console.error("주문 저장 실패", e);
+      openAlertModal("error", "저장 실패", "주문 저장에 실패했습니다. 콘솔을 확인해 주세요.");
     } finally {
       setSaving(false);
     }
@@ -239,7 +248,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
   const confirmDelete = async () => {
     const targetId = id ?? detail?.id ?? null;
     if (!targetId) {
-      openAlertModal("warning", "삭제 불가", "신규는 저장(등록) 후 삭제할 수 있습니다.");
+      openAlertModal("warning", "삭제 불가", "신규 건은 저장 후 삭제할 수 있습니다.");
       return;
     }
 
@@ -247,13 +256,13 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
     try {
       await api.delete(API_DELETE(targetId));
       closeAlertModal();
-      openAlertModal("success", "삭제 완료", "삭제가 완료되었습니다.");
+      openAlertModal("success", "삭제 완료", "주문이 삭제되었습니다.");
       onHide();
       await Promise.resolve(onChanged());
     } catch (e: any) {
-      console.error("삭제 실패", e);
+      console.error("주문 삭제 실패", e);
       closeAlertModal();
-      openAlertModal("error", "삭제 실패", "삭제에 실패했습니다. 콘솔을 확인해 주세요.");
+      openAlertModal("error", "삭제 실패", "주문 삭제에 실패했습니다. 콘솔을 확인해 주세요.");
     } finally {
       setDeleting(false);
     }
@@ -262,7 +271,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
   const handleDelete = async () => {
     const targetId = id ?? detail?.id ?? null;
     if (!targetId) {
-      openAlertModal("warning", "삭제 불가", "신규는 저장(등록) 후 삭제할 수 있습니다.");
+      openAlertModal("warning", "삭제 불가", "신규 건은 저장 후 삭제할 수 있습니다.");
       return;
     }
 
@@ -299,7 +308,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
               letterSpacing: "-0.02em",
             }}
           >
-            {isNew ? "오더 진행단계 신규" : "오더 진행단계 상세/수정"}
+            {isNew ? "주문접수" : "주문 상세 / 수정"}
           </Modal.Title>
         </Modal.Header>
 
@@ -343,7 +352,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
                         marginBottom: "8px",
                       }}
                     >
-                      오더관리번호
+                      오더번호
                     </Form.Label>
                     <Form.Control
                       value={orderNo}
@@ -362,12 +371,12 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
                         marginBottom: "8px",
                       }}
                     >
-                      오더관리명
+                      오더명
                     </Form.Label>
                     <Form.Control
                       value={orderName}
                       onChange={(e) => setOrderName(e.target.value)}
-                      placeholder="예) 2월 정기 발주"
+                      placeholder="예) AI 로봇 본체 출고 오더"
                       style={inputStyle}
                     />
                   </Col>
@@ -380,14 +389,19 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
                         marginBottom: "8px",
                       }}
                     >
-                      진행단계
+                      진행상태
                     </Form.Label>
-                    <Form.Control
+                    <Form.Select
                       value={progressText}
                       onChange={(e) => setProgressText(e.target.value)}
-                      placeholder="예) 제작중 / 출고완료 / 수령완료 등"
                       style={inputStyle}
-                    />
+                    >
+                      {ORDER_STATUS_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </Form.Select>
                   </Col>
                 </Row>
 
@@ -437,7 +451,7 @@ export default function OrderProgressModal({ show, id, onHide, onChanged }: Prop
             <Button
               onClick={handleDelete}
               disabled={(isNew && !detail?.id) || saving || deleting}
-              title={isNew && !detail?.id ? "신규는 저장(등록) 후 삭제 가능" : ""}
+              title={isNew && !detail?.id ? "신규는 저장 후 삭제 가능" : ""}
               style={{
                 backgroundColor: "#ef4444",
                 borderColor: "#ef4444",

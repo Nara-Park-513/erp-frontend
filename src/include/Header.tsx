@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, ChangeEvent, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   HeaderWrapper,
   NavBar,
@@ -12,10 +13,24 @@ import {
   SearchButton,
 } from "../stylesjs/Header.styles";
 
-const Header: React.FC = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
+const Header = () => {
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const navigate = useNavigate();
 
   const toggleMenu = () => setMenuOpen((prev) => !prev);
+
+  // 검색 입력 (e 타입 에러 해결)
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // 검색 실행 (e 타입 에러 해결)
+  const handleSearch = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
 
   return (
     <HeaderWrapper>
@@ -25,28 +40,18 @@ const Header: React.FC = () => {
       </NavBar>
 
       <Menu $isOpen={menuOpen}>
-        {/*<MenuItem>
-          <MenuLink to="/mypage">MyPage</MenuLink>
-        </MenuItem>*/}
         <MenuItem>
           <MenuLink to="/admin">Admin</MenuLink>
         </MenuItem>
-        {/*<MenuItem>
-          <MenuLink to="/inventory">재고1</MenuLink>
-        </MenuItem>
-        <MenuItem>
-          <MenuLink to="/ea2">재고2</MenuLink>
-        </MenuItem>
-        <MenuItem>
-          <MenuLink to="/ac1">회계1</MenuLink>
-        </MenuItem>
-        <MenuItem>
-          <MenuLink to="/ac2">회계2</MenuLink>
-        </MenuItem>*/}
       </Menu>
 
-      <SearchForm>
-        <SearchInput type="search" placeholder="Search" />
+      <SearchForm onSubmit={handleSearch}>
+        <SearchInput
+          type="search"
+          placeholder="Search"
+          value={searchTerm}
+          onChange={handleInputChange}
+        />
         <SearchButton type="submit">Search</SearchButton>
       </SearchForm>
     </HeaderWrapper>

@@ -41,6 +41,12 @@ const readOnlyStyle = {
   color: "#475467",
 };
 
+const getStockStatus = (qty: number) => {
+  if (qty <= 0) return "품절";
+  if (qty < 10) return "부족";
+  return "정상";
+};
+
 export default function StockModal({
   show,
   mode,
@@ -51,11 +57,12 @@ export default function StockModal({
   onSave,
   onDelete,
 }: Props) {
-  const totalAmount = useMemo(() => {
+  const availableQty = useMemo(() => Number(form.stockQty) || 0, [form.stockQty]);
+
+  const stockStatus = useMemo(() => {
     const qty = Number(form.stockQty) || 0;
-    const price = Number(form.unitPrice) || 0;
-    return qty * price;
-  }, [form.stockQty, form.unitPrice]);
+    return getStockStatus(qty);
+  }, [form.stockQty]);
 
   const handleSelectItem = (rawId: string) => {
     const id = rawId ? Number(rawId) : null;
@@ -93,7 +100,7 @@ export default function StockModal({
             letterSpacing: "-0.02em",
           }}
         >
-          {mode === "create" ? "재고 등록" : "재고 수정"}
+          {mode === "create" ? "재고 조정" : "재고 조정"}
         </Modal.Title>
       </Modal.Header>
 
@@ -156,7 +163,7 @@ export default function StockModal({
                   marginBottom: "8px",
                 }}
               >
-                품목 코드
+                품목코드
               </Form.Label>
               <Form.Control value={form.itemCode ?? ""} readOnly style={readOnlyStyle} />
             </Col>
@@ -174,7 +181,7 @@ export default function StockModal({
               <Form.Control value={form.itemName ?? ""} readOnly style={readOnlyStyle} />
             </Col>
 
-            <Col md={6}>
+            <Col md={4}>
               <Form.Label
                 style={{
                   fontWeight: 700,
@@ -182,7 +189,7 @@ export default function StockModal({
                   marginBottom: "8px",
                 }}
               >
-                재고 수량
+                현재고
               </Form.Label>
               <Form.Control
                 type="number"
@@ -193,7 +200,7 @@ export default function StockModal({
               />
             </Col>
 
-            <Col md={6}>
+            <Col md={4}>
               <Form.Label
                 style={{
                   fontWeight: 700,
@@ -201,26 +208,26 @@ export default function StockModal({
                   marginBottom: "8px",
                 }}
               >
-                단가
+                가용재고
               </Form.Label>
               <Form.Control
-                type="number"
-                value={Number(form.unitPrice ?? 0)}
-                onChange={(e) => onChange({ unitPrice: Number(e.target.value ?? 0) })}
-                min={0}
+                value={availableQty.toLocaleString()}
                 readOnly
                 style={readOnlyStyle}
               />
-              <div
+            </Col>
+
+            <Col md={4}>
+              <Form.Label
                 style={{
-                  marginTop: "8px",
-                  fontSize: "13px",
-                  color: "#98a2b3",
-                  fontWeight: 500,
+                  fontWeight: 700,
+                  color: "#475467",
+                  marginBottom: "8px",
                 }}
               >
-                * 단가는 품목 단가를 사용합니다.
-              </div>
+                재고상태
+              </Form.Label>
+              <Form.Control value={stockStatus} readOnly style={readOnlyStyle} />
             </Col>
 
             <Col md={12}>
@@ -229,26 +236,12 @@ export default function StockModal({
                   borderTop: "1px solid #eef2f7",
                   paddingTop: "18px",
                   marginTop: "4px",
+                  fontSize: "13px",
+                  color: "#98a2b3",
+                  fontWeight: 500,
                 }}
               >
-                <Form.Label
-                  style={{
-                    fontWeight: 700,
-                    color: "#475467",
-                    marginBottom: "8px",
-                  }}
-                >
-                  재고 금액
-                </Form.Label>
-                <Form.Control
-                  value={totalAmount.toLocaleString()}
-                  readOnly
-                  style={{
-                    ...readOnlyStyle,
-                    fontWeight: 700,
-                    color: "#111827",
-                  }}
-                />
+                * 현재 구조에서는 가용재고를 현재고와 동일하게 표시합니다.
               </div>
             </Col>
           </Row>
@@ -277,21 +270,6 @@ export default function StockModal({
           </Button>
         )}
 
-        {/*<Button
-          variant="secondary"
-          onClick={onClose}
-          style={{
-            backgroundColor: "#ffffff",
-            color: "#475569",
-            border: "1px solid #dbe2ea",
-            borderRadius: "10px",
-            padding: "10px 16px",
-            fontWeight: 700,
-          }}
-        >
-          닫기
-        </Button>*/}
-
         <Button
           onClick={() => {
             if (!form.itemId) return alert("품목을 선택해 주세요.");
@@ -306,7 +284,7 @@ export default function StockModal({
             fontWeight: 700,
           }}
         >
-          {mode === "create" ? "저장" : "수정"}
+          저장
         </Button>
       </Modal.Footer>
     </Modal>

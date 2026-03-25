@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Table, Button, Modal } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import Top from "../include/Top";
@@ -8,7 +8,7 @@ import { Left, Right, Flex, TopWrap } from "../stylesjs/Content.styles";
 import { TableTitle } from "../stylesjs/Text.styles";
 import { BtnRight } from "../stylesjs/Button.styles";
 
-import OrderProgressModal from "../component/orders/OrderProgressModal";
+import ShipmentProcessModal from "../component/orders/ShipmentProcessModal";
 import "../Auth.css";
 
 const api = axios.create({
@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
 const API_LIST = "/api/orders/progress";
 
-type OrderProgressRow = {
+type ShipmentRow = {
   id: number;
   orderNo: string;
   orderName: string;
@@ -54,16 +54,14 @@ const ORDER_MENU: { key: OrderMenuKey; label: string }[] = [
   { key: "delivery", label: "배송조회" },
 ];
 
+const SHIPMENT_STATUSES = ["출고대기", "출고완료", "배송중", "완료"];
+
 const getStatusStyle = (status: string) => {
   const normalized = (status || "").trim();
 
   switch (normalized) {
-    case "접수완료":
-      return { bg: "#eef4ff", color: "#3456d1", border: "#d6e2ff" };
-    case "재고확인중":
-      return { bg: "#fff7e8", color: "#b76e00", border: "#f4dfb3" };
     case "출고대기":
-      return { bg: "#f5f3ff", color: "#6941c6", border: "#ddd6fe" };
+      return { bg: "#fff7e8", color: "#b76e00", border: "#f4dfb3" };
     case "출고완료":
       return { bg: "#ecfdf3", color: "#027a48", border: "#ccebd7" };
     case "배송중":
@@ -75,29 +73,16 @@ const getStatusStyle = (status: string) => {
   }
 };
 
-const getSectionTitle = (key: OrderMenuKey) => {
-  switch (key) {
-    case "order-list":
-      return "주문조회";
-    case "shipment":
-      return "출고관리";
-    case "delivery":
-      return "배송조회";
-    default:
-      return "주문조회";
-  }
-};
-
-export default function OrderProgress() {
+export default function ShipmentManagement() {
   const navigate = useNavigate();
 
-  const [rows, setRows] = useState<OrderProgressRow[]>([]);
+  const [rows, setRows] = useState<ShipmentRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  const [activeMenu, setActiveMenu] = useState<OrderMenuKey>("order-list");
+  const [activeMenu, setActiveMenu] = useState<OrderMenuKey>("shipment");
 
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertType, setAlertType] = useState<"success" | "error" | "warning">("error");
@@ -132,7 +117,7 @@ export default function OrderProgress() {
         (Array.isArray(data?.data) ? data.data : null) ??
         [];
 
-      const normalized: OrderProgressRow[] = list.map((r: any) => ({
+      const normalized: ShipmentRow[] = list.map((r: any) => ({
         id: Number(r.id ?? r.orderId ?? 0),
         orderNo: String(r.orderNo ?? r.orderCode ?? r.no ?? ""),
         orderName: String(r.orderName ?? r.name ?? ""),
@@ -143,8 +128,8 @@ export default function OrderProgress() {
 
       setRows(normalized);
     } catch (e: any) {
-      console.error("주문조회 실패", e);
-      openAlertModal("error", "조회 실패", "주문 목록 조회에 실패했습니다. 콘솔을 확인해 주세요.");
+      console.error("출고관리 조회 실패", e);
+      openAlertModal("error", "조회 실패", "출고관리 목록 조회에 실패했습니다. 콘솔을 확인해 주세요.");
       setRows([]);
     } finally {
       setLoading(false);
@@ -155,13 +140,12 @@ export default function OrderProgress() {
     fetchList();
   }, []);
 
+  const shipmentRows = useMemo(() => {
+    return rows.filter((row) => SHIPMENT_STATUSES.includes((row.progressText || "").trim()));
+  }, [rows]);
+
   const openModalForEdit = (id: number) => {
     setSelectedId(id);
-    setShowModal(true);
-  };
-
-  const openModalForNew = () => {
-    setSelectedId(null);
     setShowModal(true);
   };
 
@@ -173,13 +157,13 @@ export default function OrderProgress() {
   const handleCategoryClick = (key: OrderMenuKey) => {
     setActiveMenu(key);
 
-    if (key === "order-list") {
+    if (key === "shipment") {
       fetchList();
       return;
     }
 
-    if (key === "shipment") {
-      navigate("/shipment-management");
+    if (key === "order-list") {
+      navigate("/order");
       return;
     }
 
@@ -300,7 +284,7 @@ export default function OrderProgress() {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        {getSectionTitle(activeMenu)}
+                        출고관리
                       </TableTitle>
 
                       <div
@@ -325,7 +309,7 @@ export default function OrderProgress() {
                       boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
                     }}
                   >
-                    <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+                    <div style={{ maxHeight: "420px", overflowY: "auto" }}>
                       <Table responsive className="mb-0 align-middle">
                         <thead>
                           <tr
@@ -340,24 +324,24 @@ export default function OrderProgress() {
                             <th style={{ width: "42%", padding: "15px 18px", fontSize: "14px", fontWeight: 700, color: "#475467", borderBottom: "1px solid #e8ecf4" }}>
                               오더명
                             </th>
-                            <th style={{ width: "25%", padding: "15px 18px", fontSize: "14px", fontWeight: 700, color: "#475467", borderBottom: "1px solid #e8ecf4" }}>
+                            <th style={{ width: "20%", padding: "15px 18px", fontSize: "14px", fontWeight: 700, color: "#475467", borderBottom: "1px solid #e8ecf4" }}>
                               진행상태
                             </th>
-                            <th style={{ width: "15%", padding: "15px 18px", fontSize: "14px", fontWeight: 700, color: "#475467", borderBottom: "1px solid #e8ecf4", textAlign: "center" }}>
-                              상세
+                            <th style={{ width: "20%", padding: "15px 18px", fontSize: "14px", fontWeight: 700, color: "#475467", borderBottom: "1px solid #e8ecf4", textAlign: "center" }}>
+                              출고처리
                             </th>
                           </tr>
                         </thead>
 
                         <tbody>
-                          {rows.length === 0 ? (
+                          {shipmentRows.length === 0 ? (
                             <tr>
                               <td colSpan={4} style={{ textAlign: "center", padding: "44px 16px", color: "#98a2b3", fontSize: "14px" }}>
-                                {loading ? "불러오는 중..." : "데이터가 없습니다"}
+                                {loading ? "불러오는 중..." : "출고 대상 데이터가 없습니다"}
                               </td>
                             </tr>
                           ) : (
-                            rows.map((r, index) => {
+                            shipmentRows.map((r, index) => {
                               const statusStyle = getStatusStyle(r.progressText);
 
                               return (
@@ -407,7 +391,7 @@ export default function OrderProgress() {
                                         fontWeight: 600,
                                       }}
                                     >
-                                      보기
+                                      처리
                                     </Button>
                                   </td>
                                 </tr>
@@ -432,29 +416,9 @@ export default function OrderProgress() {
                         fontSize: "14px",
                         fontWeight: 600,
                         cursor: "pointer",
-                        marginRight: "8px",
                       }}
                     >
                       새로고침
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={openModalForNew}
-                      style={{
-                        backgroundColor: "#6b7280",
-                        color: "#ffffff",
-                        border: "1px solid #6b7280",
-                        borderRadius: "10px",
-                        padding: "10px 18px",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        boxShadow: "0 4px 10px rgba(107, 114, 128, 0.16)",
-                        transition: "all 0.2s ease",
-                        cursor: "pointer",
-                      }}
-                    >
-                      주문접수
                     </button>
                   </BtnRight>
                 </Right>
@@ -464,7 +428,7 @@ export default function OrderProgress() {
         </Container>
       </div>
 
-      <OrderProgressModal
+      <ShipmentProcessModal
         show={showModal}
         id={selectedId}
         onHide={closeModal}

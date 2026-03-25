@@ -47,11 +47,11 @@ const emptyMaterialOrder = (): MaterialOrder => ({
   customerId: null,
   customerName: "",
   remark: "",
-  status: "",
+  status: "발주요청",
   lines: [{ itemId: null, itemName: "", qty: 1, price: 0, amount: 0 }],
 });
 
-const getStatusStyle = (status?: string): React.CSSProperties => {
+const getStatusStyle = (status?: string) => {
   const value = (status ?? "").trim();
 
   if (value.includes("완료")) {
@@ -78,6 +78,14 @@ const getStatusStyle = (status?: string): React.CSSProperties => {
     };
   }
 
+  if (value.includes("요청")) {
+    return {
+      backgroundColor: "#f5f3ff",
+      color: "#6941c6",
+      border: "1px solid #ddd6fe",
+    };
+  }
+
   if (value.includes("진행")) {
     return {
       backgroundColor: "#eaf2ff",
@@ -91,6 +99,14 @@ const getStatusStyle = (status?: string): React.CSSProperties => {
     color: "#4b5563",
     border: "1px solid #e5e7eb",
   };
+};
+
+const extractExpectedDate = (remark?: string) => {
+  const value = (remark ?? "").trim();
+  if (!value) return "";
+
+  const match = value.match(/\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : "";
 };
 
 export default function MaterialManagement() {
@@ -190,6 +206,7 @@ export default function MaterialManagement() {
       setMaterialOrderList(normalized);
     } catch (e) {
       console.error("발주 조회 실패", e);
+      openAlertModal("error", "조회 실패", "발주 목록 조회에 실패했습니다.");
     }
   };
 
@@ -298,7 +315,7 @@ export default function MaterialManagement() {
         customerId: t.customerId ?? null,
         customerName,
         remark: t.remark ?? "",
-        status: t.status ?? "",
+        status: t.status ?? "발주요청",
         totalAmount: Number(t.totalAmount ?? 0),
         lines:
           lines.length > 0
@@ -309,6 +326,7 @@ export default function MaterialManagement() {
       setShow(true);
     } catch (e) {
       console.error("발주 상세 조회 실패", e);
+      openAlertModal("error", "상세 조회 실패", "발주 상세 조회에 실패했습니다.");
     }
   };
 
@@ -326,7 +344,7 @@ export default function MaterialManagement() {
       }
 
       if (!materialOrder.lines || materialOrder.lines.length === 0) {
-        openAlertModal("warning", "입력 확인", "자재목록을 입력해 주세요.");
+        openAlertModal("warning", "입력 확인", "자재명을 입력해 주세요.");
         return;
       }
 
@@ -336,11 +354,15 @@ export default function MaterialManagement() {
         return;
       }
 
-      for (const [i, line] of materialOrder.lines.entries()) {
-        if (!line.itemName?.trim()) {
-          openAlertModal("warning", "입력 확인", `라인 ${i + 1}: 자재명을 입력해 주세요.`);
-          return;
-        }
+      const firstLine = materialOrder.lines[0];
+      if (!firstLine?.itemName?.trim()) {
+        openAlertModal("warning", "입력 확인", "자재명을 입력해 주세요.");
+        return;
+      }
+
+      if (!Number(firstLine.qty || 0)) {
+        openAlertModal("warning", "입력 확인", "발주수량을 입력해 주세요.");
+        return;
       }
 
       const orderNo =
@@ -353,7 +375,7 @@ export default function MaterialManagement() {
         customerId,
         customerName: materialOrder.customerName,
         remark: materialOrder.remark ?? "",
-        status: materialOrder.status ?? "",
+        status: materialOrder.status ?? "발주요청",
         totalAmount,
         lines: (materialOrder.lines || []).map((line) => ({
           itemId: line.itemId ? Number(line.itemId) : null,
@@ -365,8 +387,13 @@ export default function MaterialManagement() {
         })),
       };
 
-      if (selectedId) await api.put(`${API_BASE}/${selectedId}`, payload);
-      else await api.post(API_BASE, payload);
+      if (selectedId) {
+        await api.put(`${API_BASE}/${selectedId}`, payload);
+        openAlertModal("success", "저장 완료", "발주 정보가 저장되었습니다.");
+      } else {
+        await api.post(API_BASE, payload);
+        openAlertModal("success", "등록 완료", "자재 발주가 등록되었습니다.");
+      }
 
       await fetchMaterialOrders(customerList);
       handleClose();
@@ -447,7 +474,7 @@ export default function MaterialManagement() {
                           fontWeight: 500,
                         }}
                       >
-                        목록
+                        발주현황
                       </div>
                     </div>
                   </div>
@@ -477,7 +504,7 @@ export default function MaterialManagement() {
                               borderBottom: "1px solid #e8ecf4",
                             }}
                           >
-                            자재목록
+                            자재명
                           </th>
                           <th
                             style={{
@@ -499,7 +526,18 @@ export default function MaterialManagement() {
                               borderBottom: "1px solid #e8ecf4",
                             }}
                           >
-                            발주현황
+                            발주수량
+                          </th>
+                          <th
+                            style={{
+                              padding: "15px 18px",
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: "#475467",
+                              borderBottom: "1px solid #e8ecf4",
+                            }}
+                          >
+                            발주상태
                           </th>
                           <th
                             style={{
@@ -528,87 +566,102 @@ export default function MaterialManagement() {
 
                       <tbody>
                         {materialOrderList.length > 0 ? (
-                          materialOrderList.map((order, index) => (
-                            <tr
-                              key={order.id}
-                              style={{
-                                cursor: "pointer",
-                                backgroundColor: index % 2 === 0 ? "#ffffff" : "#fcfdff",
-                                transition: "all 0.15s ease",
-                              }}
-                              onClick={() => openDetail(order.id!)}
-                            >
-                              <td
+                          materialOrderList.map((order, index) => {
+                            const firstLine = order.lines?.[0];
+
+                            return (
+                              <tr
+                                key={order.id}
                                 style={{
-                                  padding: "14px 18px",
-                                  verticalAlign: "middle",
-                                  color: "#111827",
-                                  fontWeight: 600,
-                                  borderBottom: "1px solid #eef2f7",
+                                  cursor: "pointer",
+                                  backgroundColor: index % 2 === 0 ? "#ffffff" : "#fcfdff",
+                                  transition: "all 0.15s ease",
                                 }}
+                                onClick={() => openDetail(order.id!)}
                               >
-                                {order.lines?.[0]?.itemName ?? ""}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "14px 18px",
-                                  verticalAlign: "middle",
-                                  color: "#374151",
-                                  borderBottom: "1px solid #eef2f7",
-                                }}
-                              >
-                                {order.orderNo}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "14px 18px",
-                                  verticalAlign: "middle",
-                                  borderBottom: "1px solid #eef2f7",
-                                }}
-                              >
-                                <span
+                                <td
                                   style={{
-                                    ...getStatusStyle(order.status),
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    minWidth: "64px",
-                                    height: "30px",
-                                    borderRadius: "999px",
-                                    fontSize: "12px",
-                                    fontWeight: 700,
-                                    padding: "0 12px",
+                                    padding: "14px 18px",
+                                    verticalAlign: "middle",
+                                    color: "#111827",
+                                    fontWeight: 600,
+                                    borderBottom: "1px solid #eef2f7",
                                   }}
                                 >
-                                  {order.status || "미등록"}
-                                </span>
-                              </td>
-                              <td
-                                style={{
-                                  padding: "14px 18px",
-                                  verticalAlign: "middle",
-                                  color: "#4b5563",
-                                  borderBottom: "1px solid #eef2f7",
-                                }}
-                              >
-                                {String(order.orderDate ?? "").slice(0, 10)}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "14px 18px",
-                                  verticalAlign: "middle",
-                                  color: "#374151",
-                                  borderBottom: "1px solid #eef2f7",
-                                }}
-                              >
-                                {order.customerName}
-                              </td>
-                            </tr>
-                          ))
+                                  {firstLine?.itemName ?? "-"}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    verticalAlign: "middle",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {order.orderNo || "-"}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    verticalAlign: "middle",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {Number(firstLine?.qty ?? 0).toLocaleString()}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    verticalAlign: "middle",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      ...getStatusStyle(order.status),
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      minWidth: "76px",
+                                      height: "30px",
+                                      borderRadius: "999px",
+                                      fontSize: "12px",
+                                      fontWeight: 700,
+                                      padding: "0 12px",
+                                    }}
+                                  >
+                                    {order.status || "미등록"}
+                                  </span>
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    verticalAlign: "middle",
+                                    color: "#4b5563",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {String(order.orderDate ?? "").slice(0, 10)}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "14px 18px",
+                                    verticalAlign: "middle",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #eef2f7",
+                                  }}
+                                >
+                                  {order.customerName || "-"}
+                                </td>
+                              </tr>
+                            );
+                          })
                         ) : (
                           <tr>
                             <td
-                              colSpan={5}
+                              colSpan={6}
                               style={{
                                 textAlign: "center",
                                 padding: "44px 16px",
@@ -627,6 +680,24 @@ export default function MaterialManagement() {
                   <BtnRight style={{ marginTop: "14px" }}>
                     <button
                       type="button"
+                      onClick={() => fetchMaterialOrders(customerList)}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#475569",
+                        border: "1px solid #dbe2ea",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        marginRight: "8px",
+                      }}
+                    >
+                      새로고침
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={openNew}
                       style={{
                         backgroundColor: "#6b7280",
@@ -639,14 +710,6 @@ export default function MaterialManagement() {
                         boxShadow: "0 4px 10px rgba(107, 114, 128, 0.16)",
                         transition: "all 0.2s ease",
                         cursor: "pointer",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#5b6472";
-                        e.currentTarget.style.borderColor = "#5b6472";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "#6b7280";
-                        e.currentTarget.style.borderColor = "#6b7280";
                       }}
                     >
                       발주등록

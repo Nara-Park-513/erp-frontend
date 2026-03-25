@@ -21,7 +21,6 @@ export const HeaderWrapper = styled.header`
   }
 `;
 
-// Navbar 영역(브랜드 + 햄버거)
 export const NavBar = styled.nav`
   display: flex;
   align-items: center;
@@ -43,7 +42,6 @@ export const Brand = styled(Link)`
   }
 `;
 
-// 햄버거 버튼
 export const HamburgerButton = styled.button`
   background-color: #64748b;
   border: none;
@@ -69,7 +67,6 @@ export const HamburgerButton = styled.button`
   }
 `;
 
-// 메뉴
 export const Menu = styled.ul<{ $isOpen: boolean }>`
   list-style: none;
   padding: 0;
@@ -119,7 +116,6 @@ export const SearchForm = styled.form`
 
   @media (min-width: 768px) {
     margin-top: 0;
-    margin-right: 0;
     margin-left: 1rem;
     align-items: center;
   }
@@ -133,7 +129,7 @@ export const SearchInput = styled.input`
   color: #334155;
   outline: none;
   min-width: 180px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
 
   &::placeholder {
     color: #94a3b8;
@@ -158,18 +154,5 @@ export const SearchButton = styled.button`
   &:hover {
     background: #475569;
     border-color: #475569;
-    color: #ffffff;
-  }
-
-  @media (max-width: 768px) {
-    border: 1px solid #64748b;
-    color: #ffffff;
-    background: #64748b;
-
-    &:hover {
-      border: 1px solid #475569;
-      color: #ffffff;
-      background: #475569;
-    }
   }
 `;

@@ -49,6 +49,15 @@ type Props = {
   customerList: Customer[];
 };
 
+const ORDER_STATUS_OPTIONS = [
+  "발주요청",
+  "발주완료",
+  "입고대기",
+  "부분입고",
+  "입고완료",
+  "발주취소",
+];
+
 const inputStyle = {
   height: "44px",
   borderRadius: "12px",
@@ -57,16 +66,38 @@ const inputStyle = {
   width: "795px",
 };
 
+const readOnlyStyle = {
+  ...inputStyle,
+  backgroundColor: "#f8fafc",
+  color: "#475467",
+};
+
+const extractExpectedDate = (remark?: string) => {
+  const value = (remark ?? "").trim();
+  if (!value) return "";
+
+  const match = value.match(/\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : "";
+};
+
 export default function MaterialOrderModal({
   show,
   selectedId,
   materialOrder,
+  totalAmount,
   onClose,
   onSetMaterialOrder,
   onSave,
   onDelete,
   customerList,
 }: Props) {
+  const firstLine =
+    materialOrder.lines && materialOrder.lines.length > 0
+      ? materialOrder.lines[0]
+      : { itemId: null, itemName: "", qty: 1, price: 0, amount: 0 };
+
+  const expectedDate = extractExpectedDate(materialOrder.remark);
+
   return (
     <Modal
       show={show}
@@ -125,12 +156,12 @@ export default function MaterialOrderModal({
                     fontWeight: 700,
                   }}
                 >
-                  자재목록
+                  자재명
                 </MidLabel>
               </W30>
               <W70>
                 <Form.Control
-                  value={materialOrder.lines?.[0]?.itemName ?? ""}
+                  value={firstLine.itemName ?? ""}
                   onChange={(e) => {
                     const value = e.target.value;
                     onSetMaterialOrder((p) => {
@@ -175,54 +206,9 @@ export default function MaterialOrderModal({
                   onChange={(e) =>
                     onSetMaterialOrder((p) => ({ ...p, orderNo: e.target.value }))
                   }
-                  placeholder="발주번호"
-                  style={inputStyle}
-                />
-              </W70>
-            </InputGroup>
-
-            <InputGroup style={{ alignItems: "center", margin: 0 }}>
-              <W30>
-                <MidLabel
-                  style={{
-                    color: "#475467",
-                    fontWeight: 700,
-                  }}
-                >
-                  발주현황
-                </MidLabel>
-              </W30>
-              <W70>
-                <Form.Control
-                  value={materialOrder.status ?? ""}
-                  onChange={(e) =>
-                    onSetMaterialOrder((p) => ({ ...p, status: e.target.value }))
-                  }
-                  placeholder="발주현황"
-                  style={inputStyle}
-                />
-              </W70>
-            </InputGroup>
-
-            <InputGroup style={{ alignItems: "center", margin: 0 }}>
-              <W30>
-                <MidLabel
-                  style={{
-                    color: "#475467",
-                    fontWeight: 700,
-                  }}
-                >
-                  발주일자
-                </MidLabel>
-              </W30>
-              <W70>
-                <Form.Control
-                  type="date"
-                  value={materialOrder.orderDate}
-                  onChange={(e) =>
-                    onSetMaterialOrder((p) => ({ ...p, orderDate: e.target.value }))
-                  }
-                  style={inputStyle}
+                  placeholder="자동 생성 가능"
+                  style={selectedId ? inputStyle : readOnlyStyle}
+                  disabled={!selectedId}
                 />
               </W70>
             </InputGroup>
@@ -262,6 +248,195 @@ export default function MaterialOrderModal({
                 </Form.Select>
               </W70>
             </InputGroup>
+
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel
+                  style={{
+                    color: "#475467",
+                    fontWeight: 700,
+                  }}
+                >
+                  발주수량
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  type="number"
+                  min={1}
+                  value={firstLine.qty ?? 1}
+                  onChange={(e) => {
+                    const qty = Number(e.target.value || 0);
+                    onSetMaterialOrder((p) => {
+                      const lines =
+                        p.lines && p.lines.length > 0
+                          ? p.lines.map((line, idx) =>
+                              idx === 0
+                                ? {
+                                    ...line,
+                                    qty,
+                                    amount: qty * Number(line.price || 0),
+                                  }
+                                : line
+                            )
+                          : [
+                              {
+                                itemId: null,
+                                itemName: "",
+                                qty,
+                                price: 0,
+                                amount: 0,
+                              },
+                            ];
+
+                      return { ...p, lines };
+                    });
+                  }}
+                  placeholder="발주수량"
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
+
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel
+                  style={{
+                    color: "#475467",
+                    fontWeight: 700,
+                  }}
+                >
+                  단가
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  type="number"
+                  min={0}
+                  value={firstLine.price ?? 0}
+                  onChange={(e) => {
+                    const price = Number(e.target.value || 0);
+                    onSetMaterialOrder((p) => {
+                      const lines =
+                        p.lines && p.lines.length > 0
+                          ? p.lines.map((line, idx) =>
+                              idx === 0
+                                ? {
+                                    ...line,
+                                    price,
+                                    amount: Number(line.qty || 0) * price,
+                                  }
+                                : line
+                            )
+                          : [
+                              {
+                                itemId: null,
+                                itemName: "",
+                                qty: 1,
+                                price,
+                                amount: price,
+                              },
+                            ];
+
+                      return { ...p, lines };
+                    });
+                  }}
+                  placeholder="단가"
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
+
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel
+                  style={{
+                    color: "#475467",
+                    fontWeight: 700,
+                  }}
+                >
+                  발주일자
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  type="date"
+                  value={materialOrder.orderDate}
+                  onChange={(e) =>
+                    onSetMaterialOrder((p) => ({ ...p, orderDate: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
+
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel
+                  style={{
+                    color: "#475467",
+                    fontWeight: 700,
+                  }}
+                >
+                  예상입고일
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Control
+                  type="date"
+                  value={expectedDate}
+                  onChange={(e) =>
+                    onSetMaterialOrder((p) => ({
+                      ...p,
+                      remark: e.target.value ? `예상입고일:${e.target.value}` : "",
+                    }))
+                  }
+                  style={inputStyle}
+                />
+              </W70>
+            </InputGroup>
+
+            <InputGroup style={{ alignItems: "center", margin: 0 }}>
+              <W30>
+                <MidLabel
+                  style={{
+                    color: "#475467",
+                    fontWeight: 700,
+                  }}
+                >
+                  발주상태
+                </MidLabel>
+              </W30>
+              <W70>
+                <Form.Select
+                  value={materialOrder.status ?? "발주요청"}
+                  onChange={(e) =>
+                    onSetMaterialOrder((p) => ({ ...p, status: e.target.value }))
+                  }
+                  style={inputStyle}
+                >
+                  {ORDER_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </Form.Select>
+              </W70>
+            </InputGroup>
+
+            <div
+              style={{
+                marginTop: "4px",
+                paddingTop: "14px",
+                borderTop: "1px solid #eef2f7",
+                fontSize: "13px",
+                color: "#98a2b3",
+                fontWeight: 500,
+                textAlign: "right",
+              }}
+            >
+              총 발주금액: {Number(totalAmount || 0).toLocaleString()}원
+            </div>
           </div>
         </RoundRect>
       </Modal.Body>
@@ -287,21 +462,6 @@ export default function MaterialOrderModal({
             삭제
           </Button>
         )}
-
-        {/*<Button
-          variant="secondary"
-          onClick={onClose}
-          style={{
-            backgroundColor: "#ffffff",
-            color: "#475569",
-            border: "1px solid #dbe2ea",
-            borderRadius: "10px",
-            padding: "10px 16px",
-            fontWeight: 700,
-          }}
-        >
-          닫기
-        </Button>*/}
 
         <Button
           onClick={onSave}

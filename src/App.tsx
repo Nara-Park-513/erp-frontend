@@ -51,6 +51,9 @@ import NoticeList from './17_notice/noticeList';
 import OrderProgress from './18_order/OrderProgress';
 import Welcome from './welcome';
 import GoogleRedirect from './1_member/GoogleRedirect';
+import SearchPage from './pages/SearchPage';
+import ShipmentManagement from './18_order/ShipmentManagement';
+import DeliveryTracking from './18_order/DeliveryTracking';
 
 
 
@@ -94,6 +97,9 @@ function App() {
     <Route path="/mydocs" element={<EApprovalMyDocs/>}/>
     <Route path="/notice" element={<NoticeList/>}/>
 <Route path="/order" element={<OrderProgress/>}/>
+<Route path="/search" element={<SearchPage />} />
+<Route path="/shipment-management" element={<ShipmentManagement />} />
+<Route path="/delivery-tracking" element={<DeliveryTracking />} />
 
    <Route path="/login" element={<Navigate to="/login" replace />} />
     <Route path="/forgot" element={<Forgot/>}/>
