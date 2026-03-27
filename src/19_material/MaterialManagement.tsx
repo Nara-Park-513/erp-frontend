@@ -439,7 +439,7 @@ export default function MaterialManagement() {
     setActiveMenu(key);
 
     if (key === "material-order") {
-      navigate("/material");
+      openNew();
       return;
     }
 
@@ -795,7 +795,7 @@ export default function MaterialManagement() {
 
                     <button
                       type="button"
-                      onClick={() => navigate("/material-order")}
+                      onClick={openNew}
                       style={{
                         backgroundColor: "#6b7280",
                         color: "#ffffff",
